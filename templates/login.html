@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菌种数据库后台登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#a7f3d0',
+                            DEFAULT: '#10b981',
+                            dark: '#065f46',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-primary-light to-primary-dark">
+    <div class="bg-white bg-opacity-30 backdrop-filter backdrop-blur-lg p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full transform transition-transform hover:scale-105">
+        <div class="mb-6">
+            <img src=" {{ url_for('static', filename='logo.png') }} " alt="Logo" class="mx-auto w-24 h-24 rounded-full shadow-lg">
+        </div>
+        <h2 class="text-3xl font-semibold text-white mb-8">后台登录</h2>
+        <form action="#" method="post">
+            <div class="mb-6 relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <svg class="w-6 h-6 text-primary-dark" fill="currentColor" viewBox="0 0 24 24">
+                        <path fill-rule="evenodd" d="M12 1.5a4.5 4.5 0 00-4.5 4.5v1.683A5.5 5.5 0 006 12v4.5H4.75A2.75 2.75 0 002 19.75v.75a1 1 0 001 1h18a1 1 0 001-1v-.75a2.75 2.75 0 00-2.75-2.75H18V12a5.5 5.5 0 00-1.5-3.817V6A4.5 4.5 0 0012 1.5zM8.5 6a3.5 3.5 0 117 0v1.132a6.006 6.006 0 00-7 0V6zm8 12v-4.5a4 4 0 10-8 0V18h8z" clip-rule="evenodd"></path>
+                    </svg>
+                </span>
+                <div id="pwd">
+                    <input id="pwd" type="password" name="password" placeholder="密码" required class="w-full p-4 pl-12 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent">
+                </div>
+            </div>
+            <button type="submit" class="w-full p-4 bg-primary text-white text-lg rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary-dark focus:ring-opacity-50 transition-transform transform hover:scale-105">登录</button>
+        </form>
+    </div>
+</body>
+</html>

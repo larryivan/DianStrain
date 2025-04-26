@@ -1,0 +1,48 @@
+<style>
+  /* 主色调系统 */
+  .bg-primary-gradient {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  }
+  .bg-secondary-gradient {
+    background: linear-gradient(135deg, #eef2f3 0%, #ffffff 100%);
+  }
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  }
+  .btn-primary-gradient:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  }
+  
+  /* 装饰元素 */
+  .title-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(to right, #2563eb, #1e40af);
+    border-radius: 2px;
+  }
+  .section-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    height: 80%;
+    width: 4px;
+    background: linear-gradient(to bottom, #2563eb, #1e40af);
+    border-radius: 2px;
+  }
+  .info-dot::before {
+    content: '•';
+    color: #2563eb;
+    margin-right: 8px;
+    font-size: 1.2rem;
+  }
+  
+  /* 科学/微生物主题元素 */
+  .bio-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232563eb' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+</style>

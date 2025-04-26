@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ basic_info.chinese_name }} - 菌种详情</title>
+    <link href="{{ url_for('static', filename='tailwind_css_min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='all.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/all.min.js') }}"></script>
+    {% include 'shared_styles.html' %}
+</head>
+<body class="font-sans bg-secondary-gradient min-h-screen m-0 p-0">
+    <header class="bg-white py-4 px-4 shadow-md sticky top-0 z-50 flex justify-between items-center">
+        <a href="/" class="flex items-center transition-transform duration-300 hover:scale-105">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="h-10 mr-2">
+            <span class="text-blue-800 font-semibold hidden md:block">菌种数据库</span>
+        </a>
+        <div class="flex gap-6">
+            <a href="/" class="text-gray-700 font-medium transition-colors duration-300 hover:text-blue-600 flex items-center gap-1.5">
+                <i class="fas fa-search"></i> <span class="hidden md:inline">搜索</span>
+            </a>
+            <a href="/advanced_search" class="text-gray-700 font-medium transition-colors duration-300 hover:text-blue-600 flex items-center gap-1.5">
+                <i class="fas fa-sliders-h"></i> <span class="hidden md:inline">高级搜索</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto my-8 px-4">
+        <div class="p-8 bg-white rounded-3xl shadow-xl w-full animate-fade-in-up mb-8">
+            <div class="animate-slide-in">
+                <!-- 顶部信息卡 -->
+                <div class="bg-blue-50 p-6 rounded-2xl mb-8 border border-blue-100 shadow-sm">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold text-blue-900">
+                                {{ basic_info.chinese_name }} 
+                                <span class="text-xl italic text-blue-700 font-medium">({{ basic_info.genus}} {{ basic_info.species }})</span>
+                            </h1>
+                            <p class="mt-2 text-gray-600">
+                                <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium mr-2">{{ basic_info.classification_status }}</span>
+                                <span class="text-gray-500">保藏编号: {{ basic_info.basic_info_id }}</span>
+                            </p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <a href="/" class="btn-primary-gradient text-white py-2 px-4 rounded-lg text-sm font-medium inline-flex items-center gap-1.5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                                <i class="fas fa-arrow-left"></i> 返回搜索
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 导航选项卡 -->
+                <div class="flex mb-6 border-b border-gray-200 overflow-x-auto hide-scrollbar">
+                    <button class="tab-btn active px-4 py-2 font-medium text-blue-700 border-b-2 border-blue-700 focus:outline-none" data-target="basic-info">
+                        <i class="fas fa-info-circle mr-1"></i> 基本信息
+                    </button>
+                    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-blue-700 focus:outline-none" data-target="ecology-data">
+                        <i class="fas fa-leaf mr-1"></i> 生态学数据
+                    </button>
+                    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-blue-700 focus:outline-none" data-target="morphology-data">
+                        <i class="fas fa-microscope mr-1"></i> 形态学数据
+                    </button>
+                    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-blue-700 focus:outline-none" data-target="genomics-data">
+                        <i class="fas fa-dna mr-1"></i> 基因组学数据
+                    </button>
+                    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-blue-700 focus:outline-none" data-target="physiology-data">
+                        <i class="fas fa-flask mr-1"></i> 生理学数据
+                    </button>
+            </div>
+
+                <!-- 内容区域 -->
+                <div class="tab-content active" id="basic-info">
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-md mb-6 card-hover border border-gray-100">
+                        <h2 class="text-xl font-bold text-blue-700 mb-5 pl-4 flex items-center relative section-line">
+                            <i class="fas fa-info-circle text-blue-600 mr-3"></i>基本信息
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">保藏时间:</span> {{ basic_info.preservation_date }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">属名:</span> {{ basic_info.genus }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">种名:</span> {{ basic_info.species }}</p>
+                            <p class="my-2 flex flex-wrap w-full">
+                                <span class="inline-block w-[130px] shrink-0 font-semibold text-gray-800">分类地位:</span>
+                                <span class="flex-1 break-all">{{ basic_info.classification_status }}</span>
+                            </p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">中文名:</span> {{ basic_info.chinese_name }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">模式菌株:</span> {{ basic_info.is_type_strain }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">保藏单位:</span> {{ basic_info.preservation_unit }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">保藏方法:</span> {{ basic_info.preservation_method }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">保藏人:</span> {{ basic_info.preserver }}</p>
+                            <p class="col-span-1 md:col-span-2 my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">冰箱位置:</span> {{ basic_info.preservation_notes }}</p>
+                            <p class="col-span-1 md:col-span-2 my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">联系方式:</span> {{ basic_info.contact_info }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content hidden" id="ecology-data">
+    <div class="bg-gray-50 p-8 rounded-2xl shadow-md mb-6 card-hover border border-gray-100">
+        <h2 class="text-xl font-bold text-blue-700 mb-5 pl-4 flex items-center relative section-line">
+            <i class="fas fa-leaf text-blue-600 mr-3"></i>生态学数据
+        </h2>
+        {% if ecology_data %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">采样地点:</span> {{ ecology_data.location_name }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">栖息地:</span> {{ ecology_data.habitat }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">坐标:</span> {{ ecology_data.coordinates }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">采样日期:</span> {{ ecology_data.sampling_date }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">样本类型:</span> {{ ecology_data.sample_type }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">温度:</span> {{ ecology_data.temperature }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">氧气需求:</span> {{ ecology_data.oxygen_requirement }}</p>
+                <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">采样人:</span> {{ ecology_data.sampler }}</p>
+            </div>
+        {% else %}
+            <div class="flex flex-col items-center justify-center p-8 text-gray-500">
+                <i class="fas fa-info-circle text-4xl mb-3 text-blue-300"></i>
+                <p>暂无生态学数据</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+                <div class="tab-content hidden" id="morphology-data">
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-md mb-6 card-hover border border-gray-100">
+                        <h2 class="text-xl font-bold text-blue-700 mb-5 pl-4 flex items-center relative section-line">
+                            <i class="fas fa-microscope text-blue-600 mr-3"></i>形态学数据
+                        </h2>
+                        {% if morphology_data %}
+                                                <!-- 图片展示区 - 修正图片显示逻辑 -->
+                                                <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <!-- 菌落形态图片 -->
+                                                    <div class="bg-white p-4 rounded-xl shadow-md">
+                                                        <h3 class="text-lg font-semibold text-blue-700 mb-3">菌落形态</h3>
+                                                        <div class="aspect-w-16 aspect-h-9 mb-2">
+                                                            <img src="{{ url_for('download_file', filename=basic_info.basic_info_id + '_a.jpg') }}" 
+                                                                 alt="菌落形态" 
+                                                                 class="w-full h-64 object-contain rounded-lg" 
+                                                                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/no-image.png') }}'; this.alt='暂无图片';">
+                                                        </div>
+                                                        <p class="text-xs text-gray-500 text-center mt-2">菌落形态图片</p>
+                                                    </div>
+                                                    
+                                                    <!-- 显微形态图片 -->
+                                                    <div class="bg-white p-4 rounded-xl shadow-md">
+                                                        <h3 class="text-lg font-semibold text-blue-700 mb-3">显微形态</h3>
+                                                        <div class="aspect-w-16 aspect-h-9 mb-2">
+                                                            <img src="{{ url_for('download_file', filename=basic_info.basic_info_id + '_b.jpg') }}" 
+                                                                 alt="显微形态" 
+                                                                 class="w-full h-64 object-contain rounded-lg" 
+                                                                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/no-image.png') }}'; this.alt='暂无图片';">
+                                                        </div>
+                                                        <p class="text-xs text-gray-500 text-center mt-2">显微形态图片</p>
+                                                    </div>
+                                                </div>       
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">革兰氏染色:</span> {{ morphology_data.gram_stain }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">菌落颜色:</span> {{ morphology_data.colony_color }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">菌落形状:</span> {{ morphology_data.colony_shape }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">菌落边缘:</span> {{ morphology_data.colony_edge }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">菌落表面:</span> {{ morphology_data.colony_surface }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">菌落大小:</span> {{ morphology_data.colony_size }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">菌落质地:</span> {{ morphology_data.colony_texture }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">运动能力:</span> {{ morphology_data.motility }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">孢子形态:</span> {{ morphology_data.spore_shape }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">孢子染色反应:</span> {{ morphology_data.spore_staining_reaction }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">形态观察培养基:</span> {{ morphology_data.observation_medium }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">形态观察培养条件:</span> {{ morphology_data.observation_conditions }}</p>
+                        </div>
+                        {% else %}
+                        <div class="flex flex-col items-center justify-center p-8 text-gray-500">
+                            <i class="fas fa-info-circle text-4xl mb-3 text-blue-300"></i>
+                            <p>暂无形态学数据</p>
+                    </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="tab-content hidden" id="genomics-data">
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-md mb-6 card-hover border border-gray-100">
+                        <h2 class="text-xl font-bold text-blue-700 mb-5 pl-4 flex items-center relative section-line">
+                            <i class="fas fa-dna text-blue-600 mr-3"></i>基因组学数据
+                        </h2>
+                        {% if genomics_data %}
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                <p class="text-sm text-gray-500 mb-1">基因组大小</p>
+                                <p class="text-xl font-bold text-blue-700">{{ genomics_data.genome_size }}</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                <p class="text-sm text-gray-500 mb-1">GC含量</p>
+                                <p class="text-xl font-bold text-blue-700">{{ genomics_data.gc_content }}</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                <p class="text-sm text-gray-500 mb-1">N50值</p>
+                                <p class="text-xl font-bold text-blue-700">{{ genomics_data.n50 }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">测序方法:</span> {{ genomics_data.sequencing_method }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">组装方法:</span> {{ genomics_data.assembly_method }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">注释方法:</span> {{ genomics_data.annotation_method }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">Contigs数量:</span> {{ genomics_data.contig_count }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">Scaffolds数量:</span> {{ genomics_data.scaffold_count }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">tRNA基因数量:</span> {{ genomics_data.trna_count }}</p>
+                            <p class="my-2"><span class="inline-block min-w-[130px] font-semibold text-gray-800">rRNA基因数量:</span> {{ genomics_data.rrna_count }}</p>
+                        </div>
+                        
+                        <div class="mt-8 border-t border-gray-200 pt-6">
+                            <h3 class="text-lg font-semibold text-blue-800 mb-4">序列文件下载</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <a href="{{ url_for('download_file', filename=basic_info.basic_info_id ~ '.fna') }}"
+                                   class="flex flex-col items-center p-4 bg-blue-50 rounded-xl transition-all duration-300 hover:bg-blue-100 hover:shadow-md">
+                                    <i class="fas fa-dna text-blue-500 text-2xl mb-2"></i>
+                                    <span class="font-medium text-blue-800">基因组序列</span>
+                                    <span class="text-xs text-gray-500 mt-1">.FASTA 格式</span>
+                                </a>
+                                <a href="{{ url_for('download_file', filename=basic_info.basic_info_id ~ '.faa') }}"
+                                   class="flex flex-col items-center p-4 bg-blue-50 rounded-xl transition-all duration-300 hover:bg-blue-100 hover:shadow-md">
+                                    <i class="fas fa-project-diagram text-blue-500 text-2xl mb-2"></i>
+                                    <span class="font-medium text-blue-800">蛋白质序列</span>
+                                    <span class="text-xs text-gray-500 mt-1">.FASTA 格式</span>
+                                </a>
+                                <a href="{{ url_for('download_file', filename=basic_info.basic_info_id ~ '.ffn') }}"
+                                   class="flex flex-col items-center p-4 bg-blue-50 rounded-xl transition-all duration-300 hover:bg-blue-100 hover:shadow-md">
+                                    <i class="fas fa-align-left text-blue-500 text-2xl mb-2"></i>
+                                    <span class="font-medium text-blue-800">转录组序列</span>
+                                    <span class="text-xs text-gray-500 mt-1">.FASTA 格式</span>
+                                </a>
+                                <a href="{{ url_for('download_file', filename=basic_info.basic_info_id ~ '.gbk') }}"
+                                   class="flex flex-col items-center p-4 bg-blue-50 rounded-xl transition-all duration-300 hover:bg-blue-100 hover:shadow-md">
+                                    <i class="fas fa-file-code text-blue-500 text-2xl mb-2"></i>
+                                    <span class="font-medium text-blue-800">注释文件</span>
+                                    <span class="text-xs text-gray-500 mt-1">.GenBank 格式</span>
+                                </a>
+                                <a href="{{ url_for('download_file', filename=basic_info.basic_info_id ~ '.gff') }}"
+                                   class="flex flex-col items-center p-4 bg-blue-50 rounded-xl transition-all duration-300 hover:bg-blue-100 hover:shadow-md">
+                                    <i class="fas fa-file-alt text-blue-500 text-2xl mb-2"></i>
+                                    <span class="font-medium text-blue-800">注释文件</span>
+                                    <span class="text-xs text-gray-500 mt-1">.GFF3 格式</span>
+                                </a>
+                            </div>
+                </div>
+                {% else %}
+                        <div class="flex flex-col items-center justify-center p-8 text-gray-500">
+                            <i class="fas fa-info-circle text-4xl mb-3 text-blue-300"></i>
+                            <p>暂无基因组学数据</p>
+                        </div>
+                {% endif %}
+            </div>
+            </div>
+
+                <div class="tab-content hidden" id="physiology-data">
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-md mb-6 card-hover border border-gray-100">
+                        <h2 class="text-xl font-bold text-blue-700 mb-5 pl-4 flex items-center relative section-line">
+                            <i class="fas fa-flask text-blue-600 mr-3"></i>生理学数据
+                        </h2>
+                        {% if physiology_data %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-gray-800">尼古丁降解</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if physiology_data.nicotine_degradation == '阳性' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ physiology_data.nicotine_degradation }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-gray-800">纤维素酶</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if physiology_data.cellulase == '阳性' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ physiology_data.cellulase }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-gray-800">酸性蛋白酶</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if physiology_data.acidic_protease == '阳性' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ physiology_data.acidic_protease }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-gray-800">木质素降解酶</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if physiology_data.lignin_degrading_enzymes == '阳性' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ physiology_data.lignin_degrading_enzymes }}
+                                    </span>
+                                </div>
+                            </div>
+                </div>
+                {% else %}
+                        <div class="flex flex-col items-center justify-center p-8 text-gray-500">
+                            <i class="fas fa-info-circle text-4xl mb-3 text-blue-300"></i>
+                            <p>暂无生理学数据</p>
+                        </div>
+                {% endif %}
+            </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center py-6 border-t border-gray-200 mt-8">
+            <p class="text-gray-600 text-sm">© 2023 云南中烟技术中心香精香料研究所菌种数据库 - 保留所有权利</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // 选项卡功能
+            $('.tab-btn').click(function() {
+                // 移除所有选项卡的活动状态
+                $('.tab-btn').removeClass('active text-blue-700 border-blue-700').addClass('text-gray-500').css('border-bottom', '');
+                
+                // 添加当前选项卡的活动状态
+                $(this).addClass('active text-blue-700').removeClass('text-gray-500').css('border-bottom', '2px solid #1d4ed8');
+                
+                // 隐藏所有内容
+                $('.tab-content').removeClass('active').addClass('hidden');
+                
+                // 显示当前内容
+                $('#' + $(this).data('target')).removeClass('hidden').addClass('active');
+            });
+
+            // URL 参数处理 - 如果有 tab 参数则显示对应选项卡
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            if (tab) {
+                $(`.tab-btn[data-target="${tab}"]`).click();
+            }
+        });
+    </script>
+</body>
+</html>

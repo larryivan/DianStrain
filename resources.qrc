@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/app_icon.png</file>
+        <file>icons/service_icon.png</file>
+        <file>icons/search_icon.png</file>
+        <file>icons/admin_icon.png</file>
+        <file>icons/background.jpg</file>
+    </qresource>
+</RCC>

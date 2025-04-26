@@ -1,0 +1,123 @@
+# macOS 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# JetBrains IDE (如 PyCharm, IntelliJ IDEA)
+.idea/
+*.iws
+*.iml
+*.ipr
+.idea/**
+
+# VSCode 配置
+.vscode/
+*.code-workspace
+.vscode-test/
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Python 虚拟环境
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Python 包和依赖相关文件
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+develop-eggs/
+sdist/
+wheels/
+pip-wheel-metadata/
+*.wheel
+
+# 环境变量文件
+*.env
+*.env.local
+*.env.development
+*.env.production
+*.env.test
+*.env.*.local
+
+# 日志文件
+*.log
+
+# 本地测试结果文件
+coverage/
+.tox/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# 项目生成的临时文件
+*.tmp
+*.temp
+*.pid
+*.diff
+*.patch
+
+# 编辑器或 IDE 生成的备份文件
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+
+# IntelliJ IDEA 的 Maven 配置
+target/
+
+# 常见编辑器配置及临时文件
+
+# Sublime Text 缓存和项目文件
+sublime-workspace
+sublime-project
+*.sublime-workspace
+*.sublime-project
+
+# Emacs 文件
+*~                # 编辑中的文件的备份文件
+.\#*              # Emacs 锁定文件
+\#*\#             # Emacs 自动保存文件
+
+# Vim 文件
+*.swp             # Vim 交换文件
+*.swo             # 临时文件
+*.vim             # Vim 配置文件
+*.un~             # Vim 的撤销文件
+
+# Visual Studio (不是 VSCode)
+.vs/
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/settings.json
+
+# NetBeans
+nbproject/
+*.bak
+
+# Eclipse
+.project
+.classpath
+.cproject
+.settings/
+.metadata/
+

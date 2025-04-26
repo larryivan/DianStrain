@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级搜索 - 菌种数据库</title>
+    <link href="{{ url_for('static', filename='tailwind_css_min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='all.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/all.min.js') }}"></script>
+    {% include 'shared_styles.html' %}
+</head>
+<body class="font-sans bg-primary-gradient min-h-screen py-8 md:py-12">
+    <div class="bg-white bg-opacity-95 p-6 sm:p-10 rounded-3xl shadow-2xl w-[95%] max-w-6xl mx-auto backdrop-blur border border-white border-opacity-20 animate-fade-in-up">
+        <!-- 顶部导航 -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <a href="/" class="flex items-center gap-3">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="h-12 transition-transform duration-300 hover:scale-105">
+                <span class="font-semibold text-blue-900 text-lg">菌种数据库</span>
+            </a>
+            
+            <h1 class="text-2xl font-bold text-blue-900 mx-auto md:mx-0">高级搜索</h1>
+            
+            <a href="/" class="inline-flex items-center justify-center gap-1.5 text-blue-700 hover:text-blue-900 py-2 px-4 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors duration-200">
+                <i class="fas fa-arrow-left text-sm"></i>
+                <span>返回首页</span>
+            </a>
+        </div>
+
+        <!-- 预设选项卡 - 更清晰的选项卡设计 -->
+        <div class="mb-8">
+            <div class="flex border-b border-gray-200 mb-6">
+                <button type="button" onclick="switchPreset('all')" class="tab-btn active py-3 px-6 font-medium text-blue-600 border-b-2 border-blue-600 mr-2">
+                    <i class="fas fa-search mr-1"></i> 全部字段
+                </button>
+                <button type="button" onclick="switchPreset('morphology')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent mr-2">
+                    <i class="fas fa-microscope mr-1"></i> 形态学
+                </button>
+                <button type="button" onclick="switchPreset('physiology')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent mr-2">
+                    <i class="fas fa-flask mr-1"></i> 生理学
+                </button>
+                <button type="button" onclick="switchPreset('genomics')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
+                    <i class="fas fa-dna mr-1"></i> 基因组学
+                </button>
+            </div>
+        </div>
+
+        <!-- 表单区域 - 更清晰的表单布局 -->
+        <form id="advanced-search-form" action="/advanced_results" method="get" class="relative">
+            <!-- 搜索字段选择区域 -->
+            <div class="bg-gray-50 p-6 rounded-xl shadow-sm mb-8 border border-gray-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-medium text-gray-700 flex items-center">
+                        <i class="fas fa-filter text-blue-500 mr-2"></i>搜索条件
+                    </h3>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="addField()" class="bg-white text-blue-600 border border-blue-300 py-1.5 px-3 rounded-lg text-sm hover:bg-blue-50 transition-colors duration-200 flex items-center gap-1">
+                            <i class="fas fa-plus text-xs"></i> 添加
+                        </button>
+                        <button type="button" onclick="resetFields()" class="bg-white text-gray-600 border border-gray-300 py-1.5 px-3 rounded-lg text-sm hover:bg-gray-50 transition-colors duration-200 flex items-center gap-1">
+                            <i class="fas fa-sync-alt text-xs"></i> 重置
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 字段容器添加明确的样式，确保可见 -->
+                <div id="fields-container" class="space-y-4 relative">
+                    <!-- 字段将通过 JavaScript 动态添加 -->
+                </div>
+            </div>
+            
+            <!-- 排序选项区域 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-100">
+                    <label for="sort_by" class="block text-sm font-medium text-gray-700 mb-2">排序字段</label>
+                    <select id="sort_by" name="sort_by" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="preservation_date">保藏日期</option>
+                        <option value="genus">属名</option>
+                        <option value="species">种名</option>
+                        <option value="chinese_name">中文名</option>
+                    </select>
+                </div>
+
+                <div class="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-100">
+                    <label for="sort_order" class="block text-sm font-medium text-gray-700 mb-2">排序方式</label>
+                    <select id="sort_order" name="sort_order" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="asc">升序（A-Z, 旧-新）</option>
+                        <option value="desc">降序（Z-A, 新-旧）</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 确保按钮可见且聚焦 -->
+            <div class="flex justify-center mt-8">
+                <button type="submit" class="btn-primary-gradient text-white py-3 px-8 rounded-xl font-medium flex items-center gap-2 shadow hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search"></i> 执行高级搜索
+                </button>
+                </div>
+            </form>
+        
+        <!-- 底部版权信息 -->
+        <div class="text-center mt-12 pt-4 border-t border-gray-200 text-gray-400 text-xs">
+            <p>© 2023 云南中烟技术中心香精香料研究所</p>
+        </div>
+    </div>
+
+    <script>
+        const fieldConfig = {
+            // BasicInfo 模型字段
+            'BasicInfo.genus': { type: 'text', label: '属名', icon: 'bacteria', model: 'BasicInfo' },
+            'BasicInfo.species': { type: 'text', label: '种名', icon: 'bacteria', model: 'BasicInfo' },
+            'BasicInfo.classification_status': { type: 'text', label: '分类地位', icon: 'tag', model: 'BasicInfo' },
+            'BasicInfo.chinese_name': { type: 'text', label: '中文名', icon: 'font', model: 'BasicInfo' },
+            'BasicInfo.is_type_strain': { type: 'select', label: '模式菌株', options: ['是', '否'], icon: 'check-circle', model: 'BasicInfo' },
+            'BasicInfo.preservation_date': { type: 'daterange', label: '保藏日期', icon: 'calendar-alt', model: 'BasicInfo' },
+            'BasicInfo.preservation_notes': { type: 'freezer_location', label: '冰箱位置', icon: 'temperature-low', model: 'BasicInfo' },
+            
+            // MorphologyData 模型字段
+            'MorphologyData.description': { type: 'text', label: '形态描述', icon: 'microscope', model: 'MorphologyData' },
+            'MorphologyData.colony_color': { type: 'text', label: '菌落颜色', icon: 'palette', model: 'MorphologyData' },
+            'MorphologyData.spore_staining_reaction': { type: 'text', label: '染色反应', icon: 'vial', model: 'MorphologyData' },
+            
+            // EcologyData 模型字段
+            'EcologyData.habitat': { type: 'text', label: '栖息地', icon: 'leaf', model: 'EcologyData' },
+            'EcologyData.location_name': { type: 'text', label: '地理位置', icon: 'map-marker-alt', model: 'EcologyData' },
+            'EcologyData.temperature': { type: 'range', label: '温度 (°C)', icon: 'temperature-high', model: 'EcologyData' },
+            'EcologyData.oxygen_requirement': { type: 'text', label: '氧气需求', icon: 'wind', model: 'EcologyData' },
+            
+            // PhysiologyData 模型字段
+            'PhysiologyData.nicotine_degradation': { type: 'select', label: '尼古丁降解', options: ['阳性', '阴性', '未检测'], icon: 'smoking', model: 'PhysiologyData' },
+            'PhysiologyData.cellulase': { type: 'select', label: '纤维素酶', options: ['阳性', '阴性', '未检测'], icon: 'cogs', model: 'PhysiologyData' },
+            'PhysiologyData.acidic_protease': { type: 'select', label: '酸性蛋白酶', options: ['阳性', '阴性', '未检测'], icon: 'mortar-pestle', model: 'PhysiologyData' },
+            'PhysiologyData.lignin_degrading_enzymes': { type: 'select', label: '木质素降解酶', options: ['阳性', '阴性', '未检测'], icon: 'tree', model: 'PhysiologyData' }
+        };
+        
+        // 按类别组织字段配置
+        const fieldsByCategory = {
+            morphology: ['MorphologyData.description', 'MorphologyData.colony_color', 'MorphologyData.spore_staining_reaction', 'MorphologyData.colony_shape', 'MorphologyData.colony_texture'],
+            physiology: ['PhysiologyData.nicotine_degradation', 'PhysiologyData.cellulase', 'PhysiologyData.acidic_protease', 'PhysiologyData.lignin_degrading_enzymes', 'EcologyData.temperature', 'EcologyData.oxygen_requirement'],
+            genomics: ['GenomicsData.genome_size', 'GenomicsData.gc_content', 'GenomicsData.sequencing_method', 'BasicInfo.is_type_strain'],
+            basic: ['BasicInfo.genus', 'BasicInfo.species', 'BasicInfo.chinese_name', 'BasicInfo.classification_status', 'BasicInfo.preservation_date', 'BasicInfo.preservation_notes', 'EcologyData.habitat', 'EcologyData.location_name']
+        };
+        
+        let fieldCount = 0;
+        let activePreset = 'all';
+
+        function addField() {
+            const container = document.getElementById('fields-container');
+            const fieldId = `field-${fieldCount}`;
+            
+            // 创建字段行容器
+            const fieldRow = document.createElement('div');
+            fieldRow.id = fieldId;
+            fieldRow.className = 'field-row flex flex-wrap items-start gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200';
+            
+            // 创建字段选择器
+            const fieldSelectContainer = document.createElement('div');
+            fieldSelectContainer.className = 'w-full md:w-1/4';
+            
+            const fieldLabel = document.createElement('label');
+            fieldLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+            fieldLabel.textContent = '搜索字段';
+            
+            const fieldSelect = document.createElement('select');
+            fieldSelect.className = 'field-select w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            
+            // 添加空选项
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '请选择字段...';
+            fieldSelect.appendChild(emptyOption);
+            
+            // 为每个字段添加选项
+            for (const [fieldName, config] of Object.entries(fieldConfig)) {
+                const option = document.createElement('option');
+                option.value = fieldName;
+                option.textContent = config.label;
+                fieldSelect.appendChild(option);
+            }
+            
+            fieldSelectContainer.appendChild(fieldLabel);
+            fieldSelectContainer.appendChild(fieldSelect);
+            
+            // 创建输入框容器
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'input-container w-full md:w-2/5';
+            
+            const inputLabel = document.createElement('label');
+            inputLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+            inputLabel.textContent = '搜索值';
+            inputContainer.appendChild(inputLabel);
+            
+            // 初始状态下没有具体输入框，添加一个提示文本
+            const placeholderText = document.createElement('div');
+            placeholderText.className = 'text-gray-400 py-2 px-3 border border-gray-200 bg-gray-50 rounded-lg';
+            placeholderText.textContent = '请先选择字段';
+            inputContainer.appendChild(placeholderText);
+            
+            // 创建逻辑运算符选择器
+            const logicContainer = document.createElement('div');
+            logicContainer.className = 'w-full md:w-1/6';
+            
+            const logicLabel = document.createElement('label');
+            logicLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+            logicLabel.textContent = '逻辑关系';
+            
+            const logicSelect = document.createElement('select');
+            logicSelect.className = 'logic-select w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            logicSelect.disabled = fieldCount === 0; // 第一个字段不需要逻辑运算符
+            
+            const andOption = document.createElement('option');
+            andOption.value = 'AND';
+            andOption.textContent = '与 (AND)';
+            logicSelect.appendChild(andOption);
+            
+            const orOption = document.createElement('option');
+            orOption.value = 'OR';
+            orOption.textContent = '或 (OR)';
+            logicSelect.appendChild(orOption);
+            
+            logicContainer.appendChild(logicLabel);
+            logicContainer.appendChild(logicSelect);
+            
+            // 创建删除按钮
+            const removeContainer = document.createElement('div');
+            removeContainer.className = 'w-auto flex items-end';
+            
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 transition-colors duration-200 mt-5';
+            removeButton.innerHTML = '<i class="fas fa-times"></i>';
+            removeButton.onclick = function() {
+                container.removeChild(fieldRow);
+            };
+            
+            removeContainer.appendChild(removeButton);
+            
+            // 将所有元素添加到字段行
+            fieldRow.appendChild(fieldSelectContainer);
+            fieldRow.appendChild(inputContainer);
+            fieldRow.appendChild(logicContainer);
+            fieldRow.appendChild(removeContainer);
+            
+            // 添加到容器
+            container.appendChild(fieldRow);
+            
+            // 字段选择事件处理
+            fieldSelect.addEventListener('change', function() {
+                const selectedField = this.value;
+                
+                // 获取正确的输入容器
+                const row = this.closest('.field-row');
+                const inputContainer = row.querySelector('.input-container');
+                inputContainer.innerHTML = ''; // 清空输入容器
+                
+                // 重新创建标签
+                const newInputLabel = document.createElement('label');
+                newInputLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                
+                if (selectedField) {
+                    const fieldInfo = fieldConfig[selectedField];
+                    
+                    // 设置标签文本和逻辑字段名
+                    newInputLabel.textContent = `输入${fieldInfo.label}`;
+                    inputContainer.appendChild(newInputLabel);
+                    
+                    // 设置逻辑字段名称 - 使用完整字段名
+                    logicSelect.name = `logic_${selectedField}`;
+                    
+                    // 为选择的字段创建适当的输入元素
+                    if (fieldInfo.type === 'text') {
+                        createTextInput(inputContainer, selectedField);
+                    } else if (fieldInfo.type === 'daterange') {
+                        createDateRangeInput(inputContainer, selectedField);
+                    } else if (fieldInfo.type === 'range') {
+                        createRangeInput(inputContainer, selectedField);
+                    } else if (fieldInfo.type === 'select') {
+                        createSelectInput(inputContainer, fieldInfo, selectedField);
+                    } else if (fieldInfo.type === 'freezer_location') {
+                        createFreezerLocationInput(inputContainer, selectedField);
+                    }
+                } else {
+                    newInputLabel.textContent = '搜索值';
+                    inputContainer.appendChild(newInputLabel);
+                    
+                    // 添加占位符
+                    const placeholderText = document.createElement('div');
+                    placeholderText.className = 'text-gray-400 py-2 px-3 border border-gray-200 bg-gray-50 rounded-lg';
+                    placeholderText.textContent = '请先选择字段';
+                    inputContainer.appendChild(placeholderText);
+                }
+            });
+            
+            fieldCount++;
+        }
+
+        function createTextInput(container, fieldName) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = fieldName;
+            input.className = 'w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            input.placeholder = '输入搜索关键词';
+            container.appendChild(input);
+        }
+
+        function createDateRangeInput(container, fieldName) {
+            const rangeContainer = document.createElement('div');
+            rangeContainer.className = 'flex items-center gap-2';
+            
+            // 起始日期
+            const startDateInput = document.createElement('input');
+            startDateInput.type = 'date';
+            startDateInput.name = `${fieldName}_min`;
+            startDateInput.className = 'w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            // 添加标签提示这是起始日期
+            const startLabel = document.createElement('div');
+            startLabel.className = 'text-xs text-gray-500 mt-1';
+            startLabel.innerText = '起始日期';
+            
+            const separator = document.createElement('span');
+            separator.className = 'text-gray-500 mx-2';
+            separator.textContent = '至';
+            
+            // 结束日期
+            const endDateInput = document.createElement('input');
+            endDateInput.type = 'date';
+            endDateInput.name = `${fieldName}_max`;
+            endDateInput.className = 'w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            // 添加标签提示这是结束日期
+            const endLabel = document.createElement('div');
+            endLabel.className = 'text-xs text-gray-500 mt-1';
+            endLabel.innerText = '结束日期';
+            
+            // 为每个日期输入创建包装容器，包含输入框和标签
+            const startContainer = document.createElement('div');
+            startContainer.className = 'flex-1';
+            startContainer.appendChild(startDateInput);
+            startContainer.appendChild(startLabel);
+            
+            const endContainer = document.createElement('div');
+            endContainer.className = 'flex-1';
+            endContainer.appendChild(endDateInput);
+            endContainer.appendChild(endLabel);
+            
+            rangeContainer.appendChild(startContainer);
+            rangeContainer.appendChild(separator);
+            rangeContainer.appendChild(endContainer);
+            container.appendChild(rangeContainer);
+        }
+
+        function createRangeInput(container, fieldName) {
+            const rangeContainer = document.createElement('div');
+            rangeContainer.className = 'flex items-center gap-2';
+            
+            const minInput = document.createElement('input');
+            minInput.type = 'number';
+            minInput.name = `${fieldName}_min`;
+            minInput.className = 'w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            minInput.placeholder = '最小值';
+            minInput.step = fieldName.includes('ph') ? '0.1' : '1';
+            
+            const separator = document.createElement('span');
+            separator.className = 'text-gray-500';
+            separator.textContent = '至';
+
+            const maxInput = document.createElement('input');
+            maxInput.type = 'number';
+            maxInput.name = `${fieldName}_max`;
+            maxInput.className = 'w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            maxInput.placeholder = '最大值';
+            maxInput.step = fieldName.includes('ph') ? '0.1' : '1';
+            
+            rangeContainer.appendChild(minInput);
+            rangeContainer.appendChild(separator);
+            rangeContainer.appendChild(maxInput);
+            container.appendChild(rangeContainer);
+        }
+
+        function createSelectInput(container, fieldConfig, fieldName) {
+            const select = document.createElement('select');
+            select.name = fieldName;
+            select.className = 'w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200';
+            
+            // 添加空选项
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '请选择...';
+            select.appendChild(emptyOption);
+            
+            fieldConfig.options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+            container.appendChild(select);
+        }
+
+        // 为冰箱位置创建专门的输入组件
+        function createFreezerLocationInput(container, fieldName) {
+            // 创建容器以容纳所有冰箱位置组件
+            const locationContainer = document.createElement('div');
+            locationContainer.className = 'grid grid-cols-5 gap-2';
+            
+            // 创建组件：冰箱号、层、架、盒、孔
+            const components = [
+                { name: 'freezer', label: '冰箱号', placeholder: '如: 1' },
+                { name: 'layer', label: '层', placeholder: '如: 2' },
+                { name: 'shelf', label: '架', placeholder: '如: 3' },
+                { name: 'box', label: '盒', placeholder: '如: 04' },
+                { name: 'hole', label: '孔', placeholder: '如: 12' }
+            ];
+            
+            components.forEach(comp => {
+                const compContainer = document.createElement('div');
+                
+                // 添加小标签
+                const smallLabel = document.createElement('label');
+                smallLabel.className = 'block text-xs text-gray-500 mb-1';
+                smallLabel.textContent = comp.label;
+                compContainer.appendChild(smallLabel);
+                
+                // 创建输入框
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = `${fieldName}_${comp.name}`;
+                input.className = 'w-full py-1 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500';
+                input.placeholder = comp.placeholder;
+                compContainer.appendChild(input);
+                
+                locationContainer.appendChild(compContainer);
+            });
+            
+            // 添加说明文本
+            const helpText = document.createElement('div');
+            helpText.className = 'col-span-5 text-xs text-gray-500 mt-1';
+            helpText.textContent = '格式示例: 1-2-3-04-12 表示1号冰箱-第2层-3架-4盒-12孔';
+            
+            // 将组件添加到主容器
+            container.appendChild(locationContainer);
+            container.appendChild(helpText);
+        }
+
+        function resetFields() {
+            document.getElementById('fields-container').innerHTML = '';
+            fieldCount = 0;
+            addField();
+        }
+        
+        function switchPreset(preset) {
+            // 更新激活状态的预设
+            activePreset = preset;
+            
+            // 更新选项卡UI
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-blue-600', 'border-blue-600');
+                btn.classList.add('text-gray-500', 'border-transparent');
+            });
+            
+            const activeBtn = document.querySelector(`.tab-btn[onclick="switchPreset('${preset}')"]`);
+            activeBtn.classList.add('active', 'text-blue-600', 'border-blue-600');
+            activeBtn.classList.remove('text-gray-500', 'border-transparent');
+            
+            // 重置字段
+            resetFields();
+            
+            // 应用预设
+            if (preset !== 'all') {
+                (fieldsByCategory[preset] || []).forEach(fieldName => {
+                    addPresetField(fieldName);
+                });
+            } else {
+                // 如果是"全部"，只添加一个空字段
+                addField();
+            }
+        }
+        
+        function addPresetField(fieldName) {
+            // 创建一个新字段并设置值
+            addField();
+            
+            // 获取最后添加的字段
+            const container = document.getElementById('fields-container');
+            const lastField = container.lastChild;
+            
+            // 设置字段选择器的值
+            const fieldSelect = lastField.querySelector('.field-select');
+            fieldSelect.value = fieldName;
+            
+            // 触发 change 事件以创建相应的输入
+            const event = new Event('change');
+            fieldSelect.dispatchEvent(event);
+        }
+
+        // 使用DOMContentLoaded事件
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加初始空字段
+            addField();
+            
+            // 检查URL中是否有预设参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const preset = urlParams.get('preset');
+            
+            if (preset && ['morphology', 'physiology', 'genomics'].includes(preset)) {
+                document.getElementById('fields-container').innerHTML = '';
+                fieldCount = 0;
+                switchPreset(preset);
+            }
+        });
+
+        // 添加调试功能，帮助识别输入问题
+        function debugFormFields() {
+            const container = document.getElementById('fields-container');
+            console.log('字段容器:', container);
+            
+            const allInputs = container.querySelectorAll('input, select');
+            console.log('所有输入元素:', allInputs);
+            
+            // 检查每个字段
+            const fieldRows = container.querySelectorAll('.field-row');
+            fieldRows.forEach((row, index) => {
+                console.log(`字段 ${index+1}:`, row);
+                const fieldSelect = row.querySelector('.field-select');
+                const inputContainer = row.querySelector('.input-container');
+                const inputs = inputContainer ? inputContainer.querySelectorAll('input, select') : [];
+                
+                console.log('  字段选择器:', fieldSelect ? fieldSelect.value : 'missing');
+                console.log('  输入容器:', inputContainer);
+                console.log('  输入元素:', inputs);
+            });
+        }
+
+        // 修改验证函数
+        document.getElementById('advanced-search-form').addEventListener('submit', function(e) {
+            const fieldsContainer = document.getElementById('fields-container');
+            const fieldRows = fieldsContainer.querySelectorAll('.field-row');
+            
+            let hasValidField = false;
+            
+            for (const row of fieldRows) {
+                const fieldSelect = row.querySelector('.field-select');
+                
+                if (fieldSelect && fieldSelect.value) {
+                    const inputContainer = row.querySelector('.input-container');
+                    const inputs = inputContainer.querySelectorAll('input, select');
+                    
+                    // 收集本行所有输入值
+                    let hasValueInRow = false;
+                    for (const input of inputs) {
+                        if (input.name && input.name.includes('.') && input.value) {
+                            hasValueInRow = true;
+                            break;
+                        }
+                    }
+                    
+                    // 只要有一个字段有值，表单就是有效的
+                    if (hasValueInRow) {
+                        hasValidField = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!hasValidField) {
+                e.preventDefault();
+                alert('请至少选择一个搜索字段并输入搜索值');
+            }
+        });
+    </script>
+</body>
+</html>

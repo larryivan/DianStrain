@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菌种数据库后台管理系统</title>
+    <link href="{{ url_for('static', filename='tailwind_css_min.css') }}" rel="stylesheet">
+    <!-- Add Chart.js library -->
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <style>
+        .hero-bg {
+            background: url('{{ url_for("static", filename="bg.jpg") }}') no-repeat center center;
+            background-size: cover;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        .hidden {
+            display: none;
+        }
+        .form-section {
+            margin-bottom: 2rem;
+        }
+        .form-section h3 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 0.375rem;
+        }
+        .form-group input[type="file"] {
+            padding: 0.25rem;
+        }
+        .form-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .form-group .radio-group label {
+            display: flex;
+            align-items: center;
+        }
+        .form-group .radio-group input {
+            margin-right: 0.5rem;
+        }
+        .submit-button {
+            background-color: #38a169;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .submit-button:hover {
+            background-color: #2f855a;
+        }
+        .reset-button {
+            background-color: #e53e3e;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .reset-button:hover {
+            background-color: #c53030;
+        }
+        .delete-button {
+            background-color: #e53e3e;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .delete-button:hover {
+            background-color: #c53030;
+        }
+        .preview-button {
+            background-color: #3182ce;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .preview-button:hover {
+            background-color: #2b6cb0;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .preview-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 0.375rem;
+            background-color: #f7fafc;
+        }
+    </style>
+    <script>
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('main > section, .hero-section');
+            sections.forEach(section => {
+                section.classList.add('fade-out');
+                setTimeout(() => {
+                    section.classList.add('hidden');
+                }, 500); // Ensure this matches the fade-out animation duration
+            });
+
+            const targetSection = document.getElementById(sectionId);
+            setTimeout(() => {
+                targetSection.classList.remove('hidden');
+                targetSection.classList.remove('fade-out');
+                targetSection.classList.add('fade-in');
+            }, 500); // Ensure this matches the fade-out animation duration
+        }
+
+        function resetForm() {
+            document.getElementById('microbeForm').reset();
+        }
+
+        async function previewMicrobe() {
+            const microbeId = document.getElementById('delete_basic_info_id').value;
+            if (microbeId) {
+                const response = await fetch(`/microbe/${microbeId}`);
+                const data = await response.json();
+                const previewContainer = document.getElementById('preview-container');
+                if (data.error) {
+                    previewContainer.innerHTML = '<p>未找到该保藏编号的微生物信息。</p>';
+                } else {
+                    previewContainer.innerHTML = `
+                        <p><strong>属名:</strong> ${data.genus}</p>
+                        <p><strong>种名:</strong> ${data.species}</p>
+                        <p><strong>分类地位:</strong> ${data.classification_status}</p>
+                        <p><strong>保藏时间:</strong> ${data.preservation_date}</p>
+                        <p><strong>中文名:</strong> ${data.chinese_name}</p>
+                        <p><strong>模式菌株:</strong> ${data.is_type_strain}</p>
+                        <p><strong>保藏单位:</strong> ${data.preservation_unit}</p>
+                        <p><strong>保藏方法:</strong> ${data.preservation_method}</p>
+                        <p><strong>保藏人:</strong> ${data.preserver}</p>
+                        <p><strong>保存说明:</strong> ${data.preservation_notes}</p>
+                        <p><strong>联系方式:</strong> ${data.contact_info}</p>
+                        <p><strong>采集地名称:</strong> ${data.location_name}</p>
+                        <p><strong>采集地生境:</strong> ${data.habitat}</p>
+                        <p><strong>采集地坐标:</strong> ${data.coordinates}</p>
+                        <p><strong>采样时间:</strong> ${data.sampling_date}</p>
+                        <p><strong>样本类型:</strong> ${data.sample_type}</p>
+                        <p><strong>环境温度:</strong> ${data.temperature} °C</p>
+                        <p><strong>需氧类型:</strong> ${data.oxygen_requirement}</p>
+                        <p><strong>采样人:</strong> ${data.sampler}</p>
+                        <p><strong>形态描述:</strong> ${data.description}</p>
+                        <p><strong>菌落颜色:</strong> ${data.colony_color}</p>
+                        <p><strong>菌落形状:</strong> ${data.colony_shape}</p>
+                        <p><strong>菌落边缘:</strong> ${data.colony_edge}</p>
+                        <p><strong>菌落表面:</strong> ${data.colony_surface}</p>
+                        <p><strong>菌落大小:</strong> ${data.colony_size} mm</p>
+                        <p><strong>菌落质地:</strong> ${data.colony_texture}</p>
+                        <p><strong>运动能力:</strong> ${data.motility}</p>
+                        <p><strong>孢子形态:</strong> ${data.spore_shape}</p>
+                        <p><strong>孢子染色反应:</strong> ${data.spore_staining_reaction}</p>
+                        <p><strong>形态观察培养基:</strong> ${data.observation_medium}</p>
+                        <p><strong>形态观察培养条件:</strong> ${data.observation_conditions}</p>
+                        <p><strong>测序方法:</strong> ${data.sequencing_method}</p>
+                        <p><strong>组装方法:</strong> ${data.assembly_method}</p>
+                        <p><strong>注释方法:</strong> ${data.annotation_method}</p>
+                        <p><strong>基因组大小:</strong> ${data.genome_size} Mb</p>
+                        <p><strong>GC含量:</strong> ${data.gc_content} %</p>
+                        <p><strong>N50值:</strong> ${data.n50} kb</p>
+                        <p><strong>Contigs数量:</strong> ${data.contig_count}</p>
+                        <p><strong>Scaffolds数量:</strong> ${data.scaffold_count}</p>
+                        <p><strong>tRNA基因数量:</strong> ${data.trna_count}</p>
+                        <p><strong>rRNA基因数量:</strong> ${data.rrna_count}</p>
+                        <p><strong>烟碱降解:</strong> ${data.nicotine_degradation}</p>
+                        <p><strong>纤维素酶:</strong> ${data.cellulase}</p>
+                        <p><strong>酸性蛋白酶:</strong> ${data.acidic_protease}</p>
+                        <p><strong>木质素降解酶:</strong> ${data.lignin_degrading_enzymes}</p>
+                    `;
+                }
+            }
+        }
+async function loadMicrobeData() {
+    const microbeId = document.getElementById('edit_basic_info_id').value;
+    if (microbeId) {
+        const response = await fetch(`/microbe/${microbeId}`);
+        const data = await response.json();
+        const editFormContainer = document.getElementById('edit-form-container');
+
+        if (data.error) {
+            alert('未找到该保藏编号的微生物信息。');
+        } else {
+            document.getElementById('edit_genus').value = data.genus || '';
+            document.getElementById('edit_species').value = data.species || '';
+            document.getElementById('edit_taxonomic_status').value = data.classification_status || '';
+            document.getElementById('edit_preservation_date').value = data.preservation_date || '';
+            document.getElementById('edit_chinese_name').value = data.chinese_name || '';
+            document.getElementById('edit_is_type_strain').value = data.is_type_strain || '';
+            document.getElementById('edit_preservation_unit').value = data.preservation_unit || '';
+            document.getElementById('edit_preservation_method').value = data.preservation_method || '';
+            document.getElementById('edit_preservation_person').value = data.preserver || '';
+            document.getElementById('edit_preservation_notes').value = data.preservation_notes || '';
+            document.getElementById('edit_contact_info').value = data.contact_info || '';
+            document.getElementById('edit_collection_location_name').value = data.location_name || '';
+            document.getElementById('edit_collection_location_habitat').value = data.habitat || '';
+            document.getElementById('edit_collection_location_coordinates').value = data.coordinates || '';
+            document.getElementById('edit_collection_date').value = data.sampling_date || '';
+            document.getElementById('edit_sample_type').value = data.sample_type || '';
+            document.getElementById('edit_environment_temperature').value = data.temperature || '';
+            document.getElementById('edit_oxygen_type').value = data.oxygen_requirement || '';
+            document.getElementById('edit_collection_person').value = data.sampler || '';
+            document.getElementById('edit_morphological_description').value = data.description || '';
+            document.getElementById('edit_colony_color').value = data.colony_color || '';
+            document.getElementById('edit_colony_shape').value = data.colony_shape || '';
+            document.getElementById('edit_colony_edge').value = data.colony_edge || '';
+            document.getElementById('edit_colony_surface').value = data.colony_surface || '';
+            document.getElementById('edit_colony_size').value = data.colony_size || '';
+            document.getElementById('edit_colony_texture').value = data.colony_texture || '';
+            document.getElementById('edit_motility').value = data.motility || '';
+            document.getElementById('edit_spore_morphology').value = data.spore_shape || '';
+            document.getElementById('edit_spore_staining_reaction').value = data.spore_staining_reaction || '';
+            document.getElementById('edit_morphological_observation_medium').value = data.observation_medium || '';
+            document.getElementById('edit_morphological_observation_conditions').value = data.observation_conditions || '';
+            document.getElementById('edit_sequencing_method').value = data.sequencing_method || '';
+            document.getElementById('edit_assembly_method').value = data.assembly_method || '';
+            document.getElementById('edit_annotation_method').value = data.annotation_method || '';
+            document.getElementById('edit_genome_size').value = data.genome_size || '';
+            document.getElementById('edit_gc_content').value = data.gc_content || '';
+            document.getElementById('edit_n50_value').value = data.n50 || '';
+            document.getElementById('edit_contig_count').value = data.contig_count || '';
+            document.getElementById('edit_scaffold_count').value = data.scaffold_count || '';
+            document.getElementById('edit_trna_gene_count').value = data.trna_count || '';
+            document.getElementById('edit_rrna_gene_count').value = data.rrna_count || '';
+            // 设置单选框状态
+            setRadioState('nicotine_degradation', data.nicotine_degradation);
+            setRadioState('cellulase', data.cellulase);
+            setRadioState('acidic_protease', data.acidic_protease);
+            setRadioState('lignin_degrading_enzymes', data.lignin_degrading_enzymes);
+
+            editFormContainer.classList.remove('hidden');
+        }
+    }
+}
+function setRadioState(groupName, value) {
+    const radios = document.getElementsByName(groupName);
+    radios.forEach(radio => {
+        radio.checked = (radio.value === value);
+    });
+}
+
+
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Header -->
+    <header class="bg-green-700 text-white p-6 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold">微生物保藏数据库</h1>
+            <nav>
+                <ul class="flex space-x-4">
+                    <li><a href="#" onclick="showSection('home')" class="hover:underline">首页</a></li>
+                    <li><a href="#" onclick="showSection('manual-add')" class="hover:underline">手动添加数据</a></li>
+                    <li><a href="#" onclick="showSection('batch-add')" class="hover:underline">批量添加数据</a></li>
+                    <li><a href="#" onclick="showSection('edit-data')" class="hover:underline">修改数据</a></li>
+                    <li><a href="#" onclick="showSection('delete-data')" class="hover:underline">删除数据</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-bg text-white text-center py-20 hero-section" id="hero">
+        <div class="container mx-auto fade-in">
+            <h2 class="text-5xl font-bold mb-4">欢迎访问微生物保藏数据库</h2>
+            <p class="text-xl mb-6">为研究人员提供全面、准确的微生物数据平台</p>
+            <a href="#" onclick="showSection('home')" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg">立即探索</a>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg fade-in">
+        <!-- 首页 -->
+        <section id="home" class="fade-in">
+            <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">简介</h2>
+            <p class="leading-relaxed text-gray-700 text-lg">欢迎访问云南中烟技术中心香精香料研究所菌种数据库。本数据库致力于为研究人员和科学家提供一个全面、准确的微生物数据平台。通过本数据库，用户可以方便地查询和管理微生物信息，促进科学研究和交流。</p>
+            <!-- 统计信息 -->
+            <section class="mt-8">
+                <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">数据库统计</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-green-200 p-6 rounded-lg text-center shadow-lg">
+                        <p class="text-5xl font-bold text-green-700">{{ stat["total_count"] }}</p>
+                        <p class="text-xl">总微生物数量</p>
+                    </div>
+                    <div class="bg-green-200 p-6 rounded-lg text-center shadow-lg">
+                        <p class="text-5xl font-bold text-green-700">{{ stat["recent_preservation_count"] }}</p>
+                        <p class="text-xl">最近一年保存</p>
+                    </div>
+                    <div class="bg-green-200 p-6 rounded-lg text-center shadow-lg">
+                        <p class="text-5xl font-bold text-green-700">{{ stat["recent_sampling_count"] }}</p>
+                        <p class="text-xl">最近一年采样</p>
+                    </div>
+                </div>
+            </section>
+            <!-- 操作指引 -->
+            <section class="mt-8">
+                <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">使用指南</h2>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-2xl font-semibold">普通搜索微生物信息</h3>
+                        <ol class="list-decimal ml-5 mt-2 space-y-2 text-gray-700 text-lg">
+                            <li>在搜索栏输入微生物名称或相关关键词。</li>
+                            <li>点击“搜索”按钮查看结果。</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold">高级搜索微生物信息</h3>
+                        <ol class="list-decimal ml-5 mt-2 space-y-2 text-gray-700 text-lg">
+                            <li>选择一个字段，点击添加加入，选择对应的操作逻辑，系统会先合并所有的AND，之后再处理OR。</li>
+                            <li>点击“搜索”按钮查看结果。</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-semibold">添加微生物信息</h3>
+                        <ol class="list-decimal ml-5 mt-2 space-y-2 text-gray-700 text-lg">
+                            <li>点击页面右上角的“添加新微生物”按钮。</li>
+                            <li>填写微生物的详细信息，※为必填项。</li>
+                            <li>点击“提交”按钮保存。</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-semibold">批量导入微生物信息</h3>
+                        <ol class="list-decimal ml-5 mt-2 space-y-2 text-gray-700 text-lg">
+                            <li>点击页面右上角的“批量添加”按钮。</li>
+                            <li>下载csv表格，其中第一行为示例信息，删除第一行示例信息后填写对应信息即可。</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold">删除微生物信息</h3>
+                        <ol class="list-decimal ml-5 mt-2 space-y-2 text-gray-700 text-lg">
+                            <li>点击页面右上角的“删除微生物”按钮。</li>
+                            <li>输入选择编号，点击预览可查看，点击删除则清除相应数据记录。</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- 手动添加数据 -->
+        <section id="manual-add" class="hidden">
+    <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">手动添加数据</h2>
+    <div class="container mx-auto">
+        <h2 class="text-2xl font-bold mb-6">微生物保藏信息表单 ※为必填项</h2>
+        <form action="/submit" method="POST" enctype="multipart/form-data" id="microbeForm">
+            <div class="form-section">
+                <h3>基本信息</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="basic_info_id">保藏编号※</label>
+                        <input type="text" name="basic_info_id" id="basic_info_id" placeholder="如：13+NA-2-16" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="preservation_date">保藏时间※</label>
+                        <input type="date" name="preservation_date" id="preservation_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genus">属名※</label>
+                        <input type="text" name="genus" id="genus" placeholder="如：Peribacillus" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="species">种名※</label>
+                        <input type="text" name="species" id="species" placeholder="如：frigoritolerans" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="taxonomic_status">分类地位※</label>
+                        <input type="text" name="classification_status" id="taxonomic_status" placeholder="如：Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Peribacillus" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="chinese_name">中文名</label>
+                        <input type="text" name="chinese_name" id="chinese_name" placeholder="如：耐寒短芽胞杆菌">
+                    </div>
+                    <div class="form-group">
+                        <label for="is_type_strain">模式菌株※</label>
+                        <input type="text" name="is_type_strain" id="is_type_strain" placeholder="否" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="preservation_unit">保藏单位※</label>
+                        <input type="text" name="preservation_unit" id="preservation_unit" placeholder="请填入保藏单位，如：xx研究所" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="preservation_method">保藏方法※</label>
+                        <input type="text" name="preservation_method" id="preservation_method" placeholder="请填入保藏方法，如：甘油保藏" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="preservation_person">保藏人</label>
+                        <input type="text" name="preserver" id="preservation_person" placeholder="请填入保藏人姓名">
+                    </div>
+                    <div class="form-group">
+                        <label for="preservation_notes">保存说明</label>
+                        <input type="text" name="preservation_notes" id="preservation_notes" placeholder="请填入保存说明">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="contact_info">联系方式</label>
+                        <input type="text" name="contact_info" id="contact_info" placeholder="请输入邮箱或者手机号码">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>生态学数据</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="collection_location_name">采集地名称※</label>
+                        <input type="text" name="location_name" id="collection_location_name" placeholder="如：云南大理" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="collection_location_habitat">采集地生境※</label>
+                        <input type="text" name="habitat" id="collection_location_habitat" placeholder="如：茶树下土壤" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="collection_location_coordinates">采集地坐标</label>
+                        <input type="text" name="coordinates" id="collection_location_coordinates" placeholder="无">
+                    </div>
+                    <div class="form-group">
+                        <label for="collection_date">采样时间</label>
+                        <input type="date" name="sampling_date" id="collection_date" placeholder="2023/8/21">
+                    </div>
+                    <div class="form-group">
+                        <label for="sample_type">样本类型※</label>
+                        <input type="text" name="sample_type" id="sample_type" placeholder="土壤" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="temperature">环境温度 ℃</label>
+                        <input type="text" name="temperature" id="temperature" placeholder="请加上单位，如：23ºC">
+                    </div>
+                    <div class="form-group">
+                        <label for="oxygen_requirement">需氧类型※</label>
+                        <input type="text" name="oxygen_requirement" id="oxygen_requirement" placeholder="好氧" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sampler">采样人※</label>
+                        <input type="text" name="sampler" id="sampler" placeholder="采样人，例如：张三" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>形态学数据</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="description">形态描述※</label>
+                        <select name="description" id="description" required>
+                            <option value="杆状">杆状</option>
+                            <option value="球状">球状</option>
+                            <option value="螺旋状">螺旋状</option>
+                            <option value="弧形">弧形</option>
+                            <option value="菌丝状">菌丝状</option>
+                            <option value="不规则状">不规则状</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="colony_shape">菌落形状※</label>
+                        <input type="text" name="colony_shape" id="colony_shape" placeholder="如：圆形" required>
+                    </div>
+                                          <div class="form-group">
+                        <label for="colony_morphology">菌落形态</label>
+                        <input type="file" name="colony_morphology" id="colony_morphology" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="microscopic_morphology">显微形态</label>
+                        <input type="file" name="microscopic_morphology" id="microscopic_morphology" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="colony_color">菌落颜色</label>
+                        <input type="text" name="colony_color" id="colony_color" placeholder="如：白色">
+                    </div>
+                    <div class="form-group">
+                        <label for="colony_edge">菌落边缘</label>
+                        <input type="text" name="colony_edge" id="colony_edge" placeholder="如：锯齿">
+                    </div>
+                    <div class="form-group">
+                        <label for="colony_surface">菌落表面</label>
+                        <input type="text" name="colony_surface" id="colony_surface" placeholder="如：凸起">
+                    </div>
+                    <div class="form-group">
+                        <label for="colony_size">菌落大小</label>
+                        <input type="text" name="colony_size" id="colony_size" placeholder="无">
+                    </div>
+                    <div class="form-group">
+                        <label for="colony_texture">菌落质地</label>
+                        <input type="text" name="colony_texture" id="colony_texture" placeholder="如：粘稠">
+                    </div>
+                    <div class="form-group">
+                        <label for="motility">运动能力</label>
+                        <input type="text" name="motility" id="motility" placeholder="如：强">
+                    </div>
+                    <div class="form-group">
+                        <label for="spore_morphology">孢子形态</label>
+                        <input type="text" name="spore_shape" id="spore_morphology" placeholder="无">
+                    </div>
+                    <div class="form-group">
+                        <label for="spore_staining_reaction">孢子染色反应</label>
+                        <input type="text" name="spore_staining_reaction" id="spore_staining_reaction" placeholder="无">
+                    </div>
+                    <div class="form-group">
+                        <label for="morphological_observation_medium">形态观察培养基</label>
+                        <input type="text" name="observation_medium" id="morphological_observation_medium" placeholder="NA">
+                    </div>
+                    <div class="form-group">
+                        <label for="morphological_observation_conditions">形态观察培养条件</label>
+                        <input type="text" name="observation_conditions" id="morphological_observation_conditions" placeholder="如：30ºC">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>基因组学数据</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="sequencing_method">测序方法</label>
+                        <input type="text" name="sequencing_method" id="sequencing_method" placeholder="如：Illumina测序">
+                    </div>
+                    <div class="form-group">
+                        <label for="assembly_method">组装方法</label>
+                        <input type="text" name="assembly_method" id="assembly_method" placeholder="Spades">
+                    </div>
+                    <div class="form-group">
+                        <label for="annotation_method">注释方法</label>
+                        <input type="text" name="annotation_method" id="annotation_method" placeholder="PROKKA">
+                    </div>
+                    <div class="form-group">
+                        <label for="genome_size">基因组大小</label>
+                        <input type="text" name="genome_size" id="genome_size" placeholder="请加上单位，如5.54MB">
+                    </div>
+                    <div class="form-group">
+                        <label for="gc_content">GC含量</label>
+                        <input type="text" name="gc_content" id="gc_content" placeholder="请加上百分号%，如：40.60%">
+                    </div>
+                    <div class="form-group">
+                        <label for="n50_value">N50值</label>
+                        <input type="text" name="n50" id="n50_value" placeholder="如：107454">
+                    </div>
+                    <div class="form-group">
+                        <label for="contig_count">Contigs数量</label>
+                        <input type="text" name="contig_count" id="contig_count" placeholder="如：314">
+                    </div>
+                    <div class="form-group">
+                        <label for="scaffold_count">Scaffolds数量</label>
+                        <input type="text" name="scaffold_count" id="scaffold_count" placeholder="如：4">
+                    </div>
+                    <div class="form-group">
+                        <label for="trna_gene_count">tRNA基因数量</label>
+                        <input type="text" name="trna_count" id="trna_gene_count" placeholder="如：68">
+                    </div>
+                    <div class="form-group">
+                        <label for="rrna_gene_count">rRNA基因数量</label>
+                        <input type="text" name="rrna_count" id="rrna_gene_count" placeholder="如：4">
+                    </div>
+                    <div class="form-group">
+                        <label for="genome_sequence_file">基因组序列文件</label>
+                        <input type="file" name="genome_sequence_file" id="genome_sequence_file" accept=".fna">
+                    </div>
+                    <div class="form-group">
+                        <label for="protein_sequence_file">蛋白质序列文件</label>
+                        <input type="file" name="protein_sequence_file" id="protein_sequence_file" accept=".faa">
+                    </div>
+                    <div class="form-group">
+                        <label for="transcript_sequence_file">转录本序列文件</label>
+                        <input type="file" name="transcript_sequence_file" id="transcript_sequence_file" accept=".ffn">
+                    </div>
+                    <div class="form-group">
+                        <label for="genome_annotation_file_gbk">基因组注释文件</label>
+                        <input type="file" name="genome_annotation_file_gbk" id="genome_annotation_file_gbk" accept=".gbk">
+                    </div>
+                    <div class="form-group">
+                        <label for="genome_annotation_file_gff">基因组注释文件</label>
+                        <input type="file" name="genome_annotation_file_gff" id="genome_annotation_file_gff" accept=".gff">
+                    </div>
+                </div>
+            </div>
+
+<div class="form-section">
+    <h3><strong>生理学数据</strong></h3> <!-- 标题加粗 -->
+    <div class="grid grid-cols-2 gap-4"> <!-- 修改 gap 以增加网格间距 -->
+        <div class="mb-4"> <!-- 添加底部间距 -->
+            <label for="nicotine_degradation"><strong>烟碱降解</strong></label> <!-- 标签加粗 -->
+            <div class="mt-2"> <!-- 添加顶部间距 -->
+                <label><input type="radio" name="nicotine_degradation" value="阳性"> 阳性</label>
+                <label class="ml-4"><input type="radio" name="nicotine_degradation" value="阴性"> 阴性</label> <!-- 增加左边距 -->
+                <label class="ml-4"><input type="radio" name="nicotine_degradation" value="未检测" checked> 未检测</label>
+            </div>
+        </div>
+        <div class="mb-4">
+            <label for="cellulase"><strong>纤维素酶</strong></label>
+            <div class="mt-2">
+                <label><input type="radio" name="cellulase" value="阳性"> 阳性</label>
+                <label class="ml-4"><input type="radio" name="cellulase" value="阴性"> 阴性</label>
+                <label class="ml-4"><input type="radio" name="cellulase" value="未检测" checked> 未检测</label>
+            </div>
+        </div>
+        <div class="mb-4">
+            <label for="acid_proteinase"><strong>酸性蛋白酶</strong></label>
+            <div class="mt-2">
+                <label><input type="radio" name="acidic_protease" value="阳性"> 阳性</label>
+                <label class="ml-4"><input type="radio" name="acidic_protease" value="阴性"> 阴性</label>
+                <label class="ml-4"><input type="radio" name="acidic_protease" value="未检测" checked> 未检测</label>
+            </div>
+        </div>
+        <div class="mb-4">
+            <label for="ligninase"><strong>木质素降解酶</strong></label>
+            <div class="mt-2">
+                <label><input type="radio" name="lignin_degrading_enzymes" value="阳性"> 阳性</label>
+                <label class="ml-4"><input type="radio" name="lignin_degrading_enzymes" value="阴性"> 阴性</label>
+                <label class="ml-4"><input type="radio" name="lignin_degrading_enzymes" value="未检测" checked> 未检测</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-button">提交</button>
+                <button type="button" class="reset-button" onclick="resetForm()">清空</button>
+            </div>
+        </form>
+    </div>
+</section>
+        <!-- 批量添加数据 -->
+<section id="batch-add" class="hidden" style="min-height: 600px">
+    <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">批量添加数据</h2>
+    <p class="leading-relaxed text-gray-700 text-lg">在此页面可以批量添加多个微生物的数据。（下载模版后，参考并删除示例数据填写，上传文件需要在修改数据处添加。）</p>
+    <br>
+    <a href="/download_template" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">下载CSV模板</a>
+    <form id="upload-form" action="/upload_csv" method="POST" enctype="multipart/form-data" class="mt-4">
+        <div class="form-group">
+            <label for="csv_file">上传CSV文件</label>
+            <input type="file" name="file" id="csv_file" accept=".csv" required>
+        </div>
+        <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">上传</button>
+    </form>
+</section>
+
+            <!-- 修改数据 -->
+
+            <!-- 修改数据 -->
+            <section id="edit-data" class="hidden" style="min-height: 600px">
+                <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">修改数据</h2>
+                <div class="container mx-auto">
+                    <form id="editForm" action="/update" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="edit_basic_info_id">选择保藏编号</label>
+                            <select name="basic_info_id" id="edit_basic_info_id" required>
+                                {% for number in microbes %}
+                                <option value="{{ number }}">{{ number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="preview-button" onclick="loadMicrobeData()">加载数据</button>
+            
+            <div id="edit-form-container" class="hidden">
+                <div class="form-section">
+                    <h3>基本信息</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="edit_genus">属名※</label>
+                            <input type="text" name="genus" id="edit_genus" placeholder="如：Peribacillus" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_species">种名※</label>
+                            <input type="text" name="species" id="edit_species" placeholder="如：frigoritolerans" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="edit_taxonomic_status">分类地位※</label>
+                            <input type="text" name="classification_status" id="edit_taxonomic_status" placeholder="如：Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Peribacillus" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_preservation_date">保藏时间</label>
+                            <input type="date" name="preservation_date" id="edit_preservation_date" placeholder="2023/10/11" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_chinese_name">中文名※</label>
+                            <input type="text" name="chinese_name" id="edit_chinese_name" placeholder="如：耐寒短芽胞杆菌">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_is_type_strain">模式菌株※</label>
+                            <input type="text" name="is_type_strain" id="edit_is_type_strain" placeholder="否" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_preservation_unit">保藏单位※</label>
+                            <input type="text" name="preservation_unit" id="edit_preservation_unit" placeholder="如：云南省微生物研究所" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_preservation_method">保藏方法※</label>
+                            <input type="text" name="preservation_method" id="edit_preservation_method" placeholder="如：甘油保藏" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_preservation_person">保藏人</label>
+                            <input type="text" name="preserver" id="edit_preservation_person" placeholder="请填写保藏人姓名">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_preservation_notes">保存说明</label>
+                            <input type="text" name="preservation_notes" id="edit_preservation_notes" placeholder="无">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="edit_contact_info">联系方式</label>
+                            <input type="text" name="contact_info" id="edit_contact_info" placeholder="如：1506165827@qq.com">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>生态学数据</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="edit_collection_location_name">采集地名称※</label>
+                            <input type="text" name="location_name" id="edit_collection_location_name" placeholder="如：云南大理" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_collection_location_habitat">采集地生境※</label>
+                            <input type="text" name="habitat" id="edit_collection_location_habitat" placeholder="如：茶树下土壤" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_collection_location_coordinates">采集地坐标</label>
+                            <input type="text" name="coordinates" id="edit_collection_location_coordinates" placeholder="无">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_collection_date">采样时间</label>
+                            <input type="date" name="sampling_date" id="edit_collection_date" placeholder="2023/8/21">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_sample_type">样本类型※</label>
+                            <input type="text" name="sample_type" id="edit_sample_type" placeholder="如：土壤" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_environment_temperature">环境温度</label>
+                            <input type="text" name="temperature" id="edit_environment_temperature" placeholder="请带上单位，如23℃">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_oxygen_type">需氧类型※</label>
+                            <input type="text" name="oxygen_requirement" id="edit_oxygen_type" placeholder="如：好氧" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_collection_person">采样人</label>
+                            <input type="text" name="sampler" id="edit_collection_person" placeholder="采样人，例如：张三">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>形态学数据</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="edit_morphological_description">形态描述※</label>
+                            <select name="description" id="edit_morphological_description" required>
+                                <option value="杆状">杆状</option>
+                                <option value="球状">球状</option>
+                                <option value="螺旋状">螺旋状</option>
+                                <option value="弧形">弧形</option>
+                                <option value="菌丝状">菌丝状</option>
+                                <option value="不规则状">不规则状</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_colony_shape">菌落形状※</label>
+                            <input type="text" name="colony_shape" id="edit_colony_shape" placeholder="圆形" required>
+                        </div>
+                                            <div class="form-group">
+                        <label for="colony_morphology">菌落形态</label>
+                        <input type="file" name="colony_morphology" id="colony_morphology" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="microscopic_morphology">显微形态</label>
+                        <input type="file" name="microscopic_morphology" id="microscopic_morphology" accept="image/*">
+                    </div>
+                        <div class="form-group">
+                            <label for="edit_colony_color">菌落颜色</label>
+                            <input type="text" name="colony_color" id="edit_colony_color" placeholder="如：白色">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_colony_edge">菌落边缘</label>
+                            <input type="text" name="colony_edge" id="edit_colony_edge" placeholder="如：锯齿">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_colony_surface">菌落表面</label>
+                            <input type="text" name="colony_surface" id="edit_colony_surface" placeholder="如：凸起">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_colony_size">菌落大小</label>
+                            <input type="text" name="colony_size" id="edit_colony_size" placeholder="如：大">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_colony_texture">菌落质地</label>
+                            <input type="text" name="colony_texture" id="edit_colony_texture" placeholder="如：粘稠">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_motility">运动能力</label>
+                            <input type="text" name="motility" id="edit_motility" placeholder="如：强">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_spore_morphology">孢子形态</label>
+                            <input type="text" name="spore_shape" id="edit_spore_morphology" placeholder="无">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_spore_staining_reaction">孢子染色反应</label>
+                            <input type="text" name="spore_staining_reaction" id="edit_spore_staining_reaction" placeholder="无">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="edit_morphological_observation_medium">形态观察培养基</label>
+                            <textarea name="observation_medium" id="edit_morphological_observation_medium" rows="3"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="edit_morphological_observation_conditions">形态观察培养条件</label>
+                            <textarea name="observation_conditions" id="edit_morphological_observation_conditions" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>基因组学数据</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="edit_sequencing_method">测序方法</label>
+                            <input type="text" name="sequencing_method" id="edit_sequencing_method" placeholder="如：Illumina测序">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_assembly_method">组装方法</label>
+                            <input type="text" name="assembly_method" id="edit_assembly_method" placeholder="Spades">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_annotation_method">注释方法</label>
+                            <input type="text" name="annotation_method" id="edit_annotation_method" placeholder="PROKKA">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_genome_size">基因组大小</label>
+                            <input type="text" name="genome_size" id="edit_genome_size" placeholder="5.54MB">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_gc_content">GC含量</label>
+                            <input type="text" name="gc_content" id="edit_gc_content" placeholder="40.60%">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_n50_value">N50值</label>
+                            <input type="text" name="n50" id="edit_n50_value" placeholder="107454">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_contig_count">Contigs数量</label>
+                            <input type="text" name="contig_count" id="edit_contig_count" placeholder="314">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_scaffold_count">Scaffolds数量</label>
+                            <input type="text" name="scaffold_count" id="edit_scaffold_count" placeholder="4">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_trna_gene_count">tRNA基因数量</label>
+                            <input type="text" name="trna_count" id="edit_trna_gene_count" placeholder="68">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_rrna_gene_count">rRNA基因数量</label>
+                            <input type="text" name="rrna_count" id="edit_rrna_gene_count" placeholder="4">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_genome_sequence_file">基因组序列文件</label>
+                            <input type="file" name="genome_sequence_file" id="edit_genome_sequence_file" accept=".fna">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_protein_sequence_file">蛋白质序列文件</label>
+                            <input type="file" name="protein_sequence_file" id="edit_protein_sequence_file" accept=".faa">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_transcript_sequence_file">转录本序列文件</label>
+                            <input type="file" name="transcript_sequence_file" id="edit_transcript_sequence_file" accept=".ffn">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_genome_annotation_file_gbk">基因组注释文件</label>
+                            <input type="file" name="genome_annotation_file_gbk" id="edit_genome_annotation_file_gbk" accept=".gbk">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_genome_annotation_file_gff">基因组注释文件</label>
+                            <input type="file" name="genome_annotation_file_gff" id="edit_genome_annotation_file_gff" accept=".gff">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3><strong>生理学数据</strong></h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label for="nicotine_degradation"><strong>烟碱降解</strong></label>
+                            <div class="mt-2">
+                                <label><input type="radio" id="edit_nicotine_degradation_positive" name="nicotine_degradation" value="阳性"> 阳性</label>
+                                <label class="ml-4"><input type="radio" id="edit_nicotine_degradation_negative" name="nicotine_degradation" value="阴性"> 阴性</label>
+                                <label class="ml-4"><input type="radio" id="edit_nicotine_degradation_untested" name="nicotine_degradation" value="未检测"> 未检测</label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="cellulase"><strong>纤维素酶</strong></label>
+                            <div class="mt-2">
+                                <label><input type="radio" id="edit_cellulase_positive" name="cellulase" value="阳性"> 阳性</label>
+                                <label class="ml-4"><input type="radio" id="edit_cellulase_negative" name="cellulase" value="阴性"> 阴性</label>
+                                <label class="ml-4"><input type="radio" id="edit_cellulase_untested" name="cellulase" value="未检测"> 未检测</label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="acid_proteinase"><strong>酸性蛋白酶</strong></label>
+                            <div class="mt-2">
+                                <label><input type="radio" id="edit_acidic_protease_positive" name="acidic_protease" value="阳性"> 阳性</label>
+                                <label class="ml-4"><input type="radio" id="edit_acidic_protease_negative" name="acidic_protease" value="阴性"> 阴性</label>
+                                <label class="ml-4"><input type="radio" id="edit_acidic_protease_untested" name="acidic_protease" value="未检测"> 未检测</label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="ligninase"><strong>木质素降解酶</strong></label>
+                            <div class="mt-2">
+                                <label><input type="radio" id="edit_lignin_degrading_enzymes_positive" name="lignin_degrading_enzymes" value="阳性"> 阳性</label>
+                                <label class="ml-4"><input type="radio" id="edit_lignin_degrading_enzymes_negative" name="lignin_degrading_enzymes" value="阴性"> 阴性</label>
+                                <label class="ml-4"><input type="radio" id="edit_lignin_degrading_enzymes_untested" name="lignin_degrading_enzymes" value="未检测"> 未检测</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+<div class="form-actions">
+    <button type="submit" class="submit-button">提交</button>
+    <button type="button" class="reset-button" onclick="resetForm()">清空</button>
+</div>
+</div>
+</form>
+</div>
+</section>
+<!-- 删除数据 -->
+<section id="delete-data" class="hidden" style="height: 90%; min-height: 600px">
+    <h2 class="text-3xl font-semibold mb-4 border-b-2 border-gray-300 pb-2">删除数据</h2>
+    <div class="container mx-auto">
+        <form action="/delete" method="POST" class="delete-form" onsubmit="return confirmDelete()">
+            <div class="form-group">
+    <label for="delete_basic_info_id"></label>
+    <select name="basic_info_id" id="delete_basic_info_id" required>
+        <option value="" disabled selected>请选择保藏编号</option> <!-- 默认空白选项 -->
+        {% for number in microbes %}
+        <option value="{{ number }}">{{ number }}</option>
+        {% endfor %}
+    </select>
+</div>
+            <!-- 预览按钮不提交表单 -->
+            <button type="button" class="preview-button" onclick="previewMicrobe()">预览</button>
+            <!-- 删除按钮为 submit 类型，确保表单提交 -->
+            <button type="submit" class="delete-button">删除</button>
+            <br>
+            <div id="preview-container" class="preview-container">
+                <p>请选择一个保藏编号以查看详细信息。</p>
+            </div>
+        </form>
+    </div>
+</section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-green-700 text-white p-6 text-center mt-10 fade-in">
+        © 2024 云南中烟技术中心香精香料研究所. 版权所有.
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索结果 - 菌种数据库</title>
+    <link href="{{ url_for('static', filename='tailwind_css_min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='all.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/all.min.js') }}"></script>
+    {% include 'shared_styles.html' %}
+</head>
+<body class="font-sans bg-gray-50 min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white py-3 px-4 shadow-md sticky top-0 z-50 border-b border-gray-200">
+        <div class="container mx-auto max-w-6xl flex justify-between items-center">
+            <a href="/" class="flex items-center gap-2 transition-transform duration-300 hover:scale-105">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="h-10">
+                <span class="text-blue-800 font-semibold hidden md:block">菌种数据库</span>
+            </a>
+            
+            <!-- 搜索框 -->
+            <form id="search-form" action="/results" method="get" class="flex w-full max-w-xl mx-4 relative">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input id="search-input" type="text" name="q" value="{{ query|default('') }}" placeholder="搜索菌种..." 
+                          class="flex-1 w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-l-lg text-base transition-all duration-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="btn-primary-gradient text-white py-2 px-4 rounded-r-lg transition-all duration-300 text-base flex items-center justify-center hover:shadow-md">
+                    搜索
+                </button>
+                <ul id="suggestions" class="hidden absolute top-full left-0 bg-white border-2 border-gray-200 border-t-0 rounded-b-lg shadow-lg w-full z-10 overflow-y-auto max-h-60"></ul>
+            </form>
+            
+            <div class="flex items-center gap-4">
+                <a href="/advanced_search" class="text-gray-600 hover:text-blue-700 transition-colors duration-200 hidden md:flex items-center gap-1">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>高级搜索</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto max-w-6xl flex-1 p-4 md:p-6">
+        <!-- 结果标题 - 优化样式和视觉效果 -->
+        <div class="mb-8 bg-white rounded-xl p-6 shadow-sm border border-gray-100 opacity-0 transform -translate-y-2 transition-all duration-500 ease-out" style="animation: fadeSlideDown 0.4s forwards">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    {% if is_advanced_search %}
+                        <h1 class="text-2xl md:text-3xl font-bold text-blue-800 mb-1">高级搜索结果</h1>
+                    {% elif query %}
+                        <h1 class="text-2xl md:text-3xl font-bold text-blue-800 mb-1">搜索结果: <span class="text-gray-700">"{{ query }}"</span></h1>
+                    {% else %}
+                        <h1 class="text-2xl md:text-3xl font-bold text-blue-800 mb-1">菌种数据库</h1>
+                    {% endif %}
+                    <p class="text-gray-600">找到 <span class="font-semibold text-blue-700">{{ total_results }}</span> 条记录</p>
+                </div>
+                
+                <a href="/advanced_search" class="btn-secondary py-2 px-4 rounded-lg text-sm flex items-center gap-2 hover:bg-blue-50 transition-colors duration-200">
+                    <i class="fas fa-sliders-h text-blue-600"></i>
+                    <span class="text-blue-700">高级搜索</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- 筛选选项/搜索条件摘要 -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100 opacity-0 transition-opacity duration-500 ease-out delay-100" style="animation: fadeIn 0.4s 0.2s forwards">
+            {% if is_advanced_search and search_description %}
+                <!-- 高级搜索条件摘要 -->
+                <div class="flex items-start gap-3 mb-4 pb-4 border-b border-gray-100">
+                    <div class="bg-blue-50 p-2 rounded-lg text-blue-500 mt-1">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-medium text-gray-800 mb-1">搜索条件</h2>
+                        <p class="text-gray-600 text-sm">{{ search_description }}</p>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- 排序选项 - 优化布局和视觉体验 -->
+            <div class="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4 {% if is_advanced_search and search_description %}mt-2{% endif %}">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                    <div class="flex items-center gap-2 text-gray-700 mb-2 sm:mb-0">
+                        <i class="fas fa-sort text-blue-500"></i>
+                        <span class="font-medium">排序方式:</span>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-1.5 sm:gap-2">
+                        {% if is_advanced_search %}
+                            <a href="{{ build_sort_url('preservation_date', 'desc') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort_by == 'preservation_date' and sort_order == 'desc' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-calendar-alt mr-1"></i> 最新收录
+                            </a>
+                            <a href="{{ build_sort_url('preservation_date', 'asc') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort_by == 'preservation_date' and sort_order == 'asc' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-calendar-alt mr-1"></i> 最早收录
+                            </a>
+                            <a href="{{ build_sort_url('species', 'asc') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort_by == 'species' and sort_order == 'asc' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-sort-alpha-down mr-1"></i> 种名 (A-Z)
+                            </a>
+                            <a href="{{ build_sort_url('species', 'desc') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort_by == 'species' and sort_order == 'desc' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-sort-alpha-up-alt mr-1"></i> 种名 (Z-A)
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('results', q=query, sort='relevance') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort == 'relevance' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-star mr-1"></i> {% if query %}相关度{% else %}默认排序{% endif %}
+                            </a>
+                            <a href="{{ url_for('results', q=query, sort='name_asc') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort == 'name_asc' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-sort-alpha-down mr-1"></i> 名称 (A-Z)
+                            </a>
+                            <a href="{{ url_for('results', q=query, sort='name_desc') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort == 'name_desc' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-sort-alpha-up-alt mr-1"></i> 名称 (Z-A)
+                            </a>
+                            <a href="{{ url_for('results', q=query, sort='date_new') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort == 'date_new' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-calendar-alt mr-1"></i> 最新收录
+                            </a>
+                            <a href="{{ url_for('results', q=query, sort='date_old') }}" class="px-3 py-1.5 rounded-lg text-sm {% if sort == 'date_old' %}bg-blue-600 text-white font-medium{% else %}text-gray-600 bg-gray-100 hover:bg-gray-200{% endif %} transition-colors duration-200">
+                                <i class="fas fa-history mr-1"></i> 最早收录
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 批量操作区域 - 全面优化设计 -->
+                <div class="flex items-center gap-3 mt-3 sm:mt-0 ml-0 sm:ml-auto pb-1 border-b-2 border-blue-50">
+                    <!-- 全选按钮 - 优化设计 -->
+                    <button id="select-all-btn" class="group flex items-center gap-1.5 px-3 py-1.5 rounded transition-all duration-200 bg-white hover:bg-blue-50 border border-gray-200 shadow-sm">
+                        <div class="w-4.5 h-4.5 flex items-center justify-center text-blue-500">
+                            <i class="far fa-square text-base select-all-icon group-hover:text-blue-600 transition-colors duration-200"></i>
+                        </div>
+                        <span class="text-sm text-gray-700 group-hover:text-blue-700 font-medium">全选</span>
+                    </button>
+                    
+                    <!-- 下载按钮 - 优化设计 -->
+                    <button id="download-selected-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 shadow-sm disabled:opacity-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 disabled:hover:bg-gray-100 disabled:cursor-not-allowed" disabled>
+                        <div class="w-4.5 h-4.5 flex items-center justify-center">
+                            <i class="fas fa-file-download text-sm"></i>
+                        </div>
+                        <span class="selected-count text-sm font-medium">下载选中(0)</span>
+                    </button>
+                    
+                    <!-- 分隔线 -->
+                    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+                    
+                    <!-- 视图切换按钮 - 优化视觉协调性 -->
+                    <div class="flex items-center rounded-md bg-gray-100 p-0.5 border border-gray-200">
+                        <button id="list-view-btn" class="view-btn p-1.5 rounded-md text-blue-600 bg-white border border-blue-100 shadow-sm" title="列表视图">
+                            <i class="fas fa-list text-sm"></i>
+                        </button>
+                        <button id="grid-view-btn" class="view-btn p-1.5 rounded-md text-gray-500 hover:bg-white hover:text-blue-600 transition-all duration-200" title="网格视图">
+                            <i class="fas fa-th-large text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    {% if is_advanced_search %}
+                    <a href="/advanced_search" class="ml-1 text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
+                        <i class="fas fa-pencil-alt"></i>
+                        <span class="hidden sm:inline">修改</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 结果列表 - 已选择数量显示区域 -->
+        {% if results %}
+        <div id="selection-summary" class="mb-4 py-2 px-4 bg-blue-50 rounded-lg border border-blue-100 hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-blue-700"><span class="selected-count-text font-medium">0</span> 项已选择</span>
+                <button id="clear-selection-btn" class="text-xs text-blue-600 hover:text-blue-800">
+                    清除选择
+                </button>
+            </div>
+        </div>
+        
+        <!-- 列表视图 - 优化复选框设计 -->
+        <div id="list-view" class="space-y-3 mb-8 opacity-0 transition-opacity duration-500 ease-out delay-200" style="animation: fadeIn 0.5s 0.4s forwards">
+            {% for result in results %}
+            <div class="result-item flex bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 group hover:shadow-md transition-all duration-300">
+                <!-- 选择框容器 - 重新设计样式 -->
+                <div class="checkbox-container flex items-center justify-center px-2.5 lg:px-3 border-r border-gray-100 bg-blue-50 bg-opacity-30">
+                    <div class="relative flex items-center justify-center w-5 h-5">
+                        <input type="checkbox" class="result-checkbox absolute w-5 h-5 opacity-0 cursor-pointer z-10" 
+                               value="{{ result.basic_info_id }}" aria-label="选择{{ result.chinese_name or result.genus + ' ' + result.species }}">
+                        <div class="checkbox-custom w-5 h-5 border border-gray-300 rounded transition-all duration-200 bg-white flex items-center justify-center">
+                            <i class="fas fa-check text-white text-xs scale-0 transition-transform duration-200 checkbox-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="{{ url_for('detail', basic_info_id=result.basic_info_id) }}" class="flex flex-1 flex-row">
+                    <!-- 左侧标识 - 更紧凑 -->
+                    <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-r border-gray-200 py-2 px-2 flex flex-col items-center justify-center w-12 sm:w-14">
+                        <i class="fas fa-bacteria text-blue-500 text-base"></i>
+                        <span class="text-blue-800 text-xs font-medium text-center">{{ result.basic_info_id }}</span>
+                    </div>
+                    
+                    <!-- 右侧内容区更紧凑 -->
+                    <div class="flex-1 py-2 px-3 flex flex-col justify-between">
+                        <!-- 顶部信息行：中文和拉丁文名称在同一行 -->
+                        <div class="flex items-baseline justify-between">
+                            <div class="flex flex-wrap items-baseline gap-x-2">
+                                <h2 class="text-base font-semibold text-blue-800 group-hover:text-blue-600 transition-colors">
+                                    {{ result.chinese_name or result.genus + ' ' + result.species }}
+                                </h2>
+                                <p class="text-sm text-gray-500"><i>{{ result.genus }} {{ result.species }}</i></p>
+                            </div>
+                        </div>
+                        
+                        <!-- 中间信息区简化 -->
+                        {% if result.classification_status %}
+                        <div class="flex items-center mt-1">
+                            <div class="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-1.5 flex-shrink-0">
+                                <i class="fas fa-tag text-xs"></i>
+                            </div>
+                            <span class="text-sm text-gray-600 line-clamp-1">{{ result.classification_status }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 底部信息行：日期和查看详情在同一行 -->
+                        <div class="flex items-center justify-between mt-1">
+                            {% if result.preservation_date %}
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-1.5 flex-shrink-0">
+                                    <i class="fas fa-calendar-alt text-xs"></i>
+                                </div>
+                                <span class="text-sm text-gray-600">{{ result.preservation_date }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="flex items-center text-blue-600 ml-auto">
+                                <span class="text-sm mr-1">查看详情</span>
+                                <i class="fas fa-chevron-right text-xs group-hover:translate-x-1 transition-transform duration-200"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- 网格视图 - 优化复选框设计 -->
+        <div id="grid-view" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 opacity-0 transition-opacity duration-500 ease-out delay-200 hidden" style="animation: fadeIn 0.5s 0.4s forwards">
+            {% for result in results %}
+            <div class="result-item relative bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 transition-all duration-300 group hover:shadow-xl transform hover:-translate-y-1 h-full">
+                <!-- 选择框容器 - 美化设计 -->
+                <div class="absolute top-2 left-2 z-10 p-0.5 bg-white bg-opacity-80 backdrop-blur-sm rounded shadow-sm hover:shadow transition-all duration-200">
+                    <div class="relative flex items-center justify-center w-5 h-5">
+                        <input type="checkbox" class="result-checkbox absolute w-5 h-5 opacity-0 cursor-pointer z-10" 
+                               value="{{ result.basic_info_id }}" aria-label="选择{{ result.chinese_name or result.genus + ' ' + result.species }}">
+                        <div class="checkbox-custom w-5 h-5 border border-gray-300 rounded transition-all duration-200 bg-white flex items-center justify-center">
+                            <i class="fas fa-check text-white text-xs scale-0 transition-transform duration-200 checkbox-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="{{ url_for('detail', basic_info_id=result.basic_info_id) }}" class="flex flex-col h-full">
+                    <!-- 顶部标识 -->
+                    <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200 px-3 sm:px-5 py-2 flex justify-between items-center">
+                        <span class="text-blue-800 text-xs font-medium flex items-center">
+                            <i class="fas fa-database mr-1.5 text-blue-500"></i>
+                            菌种记录
+                        </span>
+                        <span class="bg-white text-blue-800 text-xs px-2 sm:px-2.5 py-1 rounded-full border border-blue-200">
+                            {{ result.basic_info_id }}
+                        </span>
+                    </div>
+                    
+                    <div class="p-3 sm:p-5 flex-grow">
+                        <h2 class="text-md sm:text-lg font-semibold text-blue-800 mb-2 sm:mb-3 group-hover:text-blue-600 transition-colors duration-200">
+                            {{ result.chinese_name or result.genus + ' ' + result.species }}
+                        </h2>
+                        
+                        <div class="space-y-2 sm:space-y-2.5 text-xs sm:text-sm text-gray-600">
+                            {% if result.genus and result.species %}
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-2 flex-shrink-0">
+                                    <i class="fas fa-bacteria"></i>
+                                </div>
+                                <span class="ml-1"><i>{{ result.genus }} {{ result.species }}</i></span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if result.classification_status %}
+                            <div class="flex items-start">
+                                <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-2 flex-shrink-0 mt-0.5">
+                                    <i class="fas fa-tag"></i>
+                                </div>
+                                <span class="ml-1 w-full break-words whitespace-normal hyphens-auto text-pretty text-wrap overflow-visible line-clamp-2 sm:line-clamp-none" style="width: 90%;">{{ result.classification_status }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if result.preservation_date %}
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-2 flex-shrink-0">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <span class="ml-1">{{ result.preservation_date }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-100 bg-gray-50 group-hover:bg-blue-50 px-3 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm text-gray-500 flex justify-between items-center mt-auto transition-colors duration-200">
+                        <span>查看详细资料</span>
+                        <span class="group-hover:translate-x-1 transition-transform duration-200">
+                            <i class="fas fa-arrow-right text-blue-500"></i>
+                        </span>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- 分页控件 - 改进移动端显示 -->
+        {% if total_pages > 1 %}
+        <div class="flex justify-center my-6 sm:my-8">
+            <nav aria-label="分页导航" class="inline-flex flex-wrap justify-center rounded-md shadow-sm bg-white border border-gray-200 p-1">
+                {% if page > 1 %}
+                <a href="{{ build_page_url(page-1) }}" class="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 flex items-center rounded-lg mr-1" aria-label="上一页">
+                    <i class="fas fa-chevron-left mr-1"></i> <span class="hidden sm:inline">上一页</span>
+                </a>
+                {% endif %}
+                
+                <!-- 页码部分 - 改进移动端显示 -->
+                <div class="flex items-center flex-wrap justify-center">
+                    <!-- 始终显示第一页 -->
+                    <a href="{{ build_page_url(1) }}" 
+                       class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs sm:text-sm font-medium {% if page == 1 %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-blue-50{% endif %} mx-0.5 rounded-lg transition-colors duration-200">
+                        1
+                    </a>
+                    
+                    <!-- 逻辑：如果当前页小于等于3，则显示页码1-5；否则显示当前页前后各2页 -->
+                    {% if page <= 2 %}
+                        {% set start = 2 %}
+                        {% set end = [4, total_pages]|min %}
+                    {% else %}
+                        {% set start = [page - 1, 2]|max %}
+                        {% set end = [page + 1, total_pages]|min %}
+                    {% endif %}
+                    
+                    <!-- 如果起始页大于2，添加省略号 -->
+                    {% if start > 2 %}
+                    <span class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs sm:text-sm font-medium text-gray-700 mx-0.5">...</span>
+                    {% endif %}
+                    
+                    <!-- 显示中间的页码 -->
+                    {% for p in range(start, end + 1) %}
+                        {% if p != 1 and p != total_pages %}
+                        <a href="{{ build_page_url(p) }}" 
+                           class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs sm:text-sm font-medium {% if p == page %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-blue-50{% endif %} mx-0.5 rounded-lg transition-colors duration-200">
+                            {{ p }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- 如果结束页小于总页数-1，添加省略号 -->
+                    {% if end < total_pages - 1 %}
+                    <span class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs sm:text-sm font-medium text-gray-700 mx-0.5">...</span>
+                    {% endif %}
+                    
+                    <!-- 如果总页数大于1，始终显示最后一页 -->
+                    {% if total_pages > 1 %}
+                    <a href="{{ build_page_url(total_pages) }}" 
+                       class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs sm:text-sm font-medium {% if page == total_pages %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-blue-50{% endif %} mx-0.5 rounded-lg transition-colors duration-200">
+                        {{ total_pages }}
+                    </a>
+                    {% endif %}
+                </div>
+                
+                {% if page < total_pages %}
+                <a href="{{ build_page_url(page+1) }}" class="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 flex items-center rounded-lg ml-1" aria-label="下一页">
+                    <span class="hidden sm:inline">下一页</span> <i class="fas fa-chevron-right ml-1"></i>
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- 无结果提示 - 更友好的空状态展示 -->
+        <div class="bg-white rounded-xl shadow-sm p-8 text-center max-w-2xl mx-auto opacity-0 transition-opacity duration-500 ease-out delay-200" style="animation: fadeIn 0.5s 0.4s forwards"></div>
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 text-gray-400 rounded-full mb-6">
+                <i class="fas fa-search text-4xl"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-700 mb-3">未找到相关结果</h2>
+            {% if is_advanced_search %}
+                <p class="text-gray-600 mb-6">没有找到符合您搜索条件的菌种，请尝试调整您的搜索条件。</p>
+                <a href="/advanced_search" class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2.5 px-6 rounded-lg transition-all duration-300 hover:shadow-md hover:from-blue-700 hover:to-blue-600">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>修改搜索条件</span>
+                </a>
+            {% else %}
+                <p class="text-gray-600 mb-6">{% if query %}没有找到与"{{ query }}"相关的菌种，请尝试更改搜索词或使用高级搜索。{% else %}数据库中暂无菌种记录。{% endif %}</p>
+                <a href="/advanced_search" class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2.5 px-6 rounded-lg transition-all duration-300 hover:shadow-md hover:from-blue-700 hover:to-blue-600">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>转到高级搜索</span>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </main>
+    
+    <!-- 返回顶部按钮 - 优化样式 -->
+    <button id="back-to-top" aria-label="返回顶部" class="fixed bottom-6 right-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white p-3 rounded-full shadow-lg opacity-0 transition-all duration-300 hover:shadow-blue-400/20 hover:shadow-xl hover:-translate-y-1">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-4 text-center text-gray-500 text-sm">
+        <p>© 2023 云南中烟技术中心香精香料研究所</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // 视图切换功能
+            const listViewBtn = $('#list-view-btn');
+            const gridViewBtn = $('#grid-view-btn');
+            const listView = $('#list-view');
+            const gridView = $('#grid-view');
+            
+            // 从localStorage加载用户首选项或使用默认值（列表视图）
+            const savedView = localStorage.getItem('preferredView') || 'list';
+            
+            // 设置默认视图
+            if (savedView === 'grid') {
+                activateGridView();
+            } else {
+                activateListView(); // 默认是列表视图
+            }
+            
+            // 列表视图激活函数
+            function activateListView() {
+                listView.removeClass('hidden');
+                gridView.addClass('hidden');
+                listViewBtn.addClass('text-blue-600 bg-blue-50 border-blue-200').removeClass('text-gray-400 border-transparent');
+                gridViewBtn.removeClass('text-blue-600 bg-blue-50 border-blue-200').addClass('text-gray-400 border-transparent');
+                localStorage.setItem('preferredView', 'list');
+            }
+            
+            // 网格视图激活函数
+            function activateGridView() {
+                gridView.removeClass('hidden');
+                listView.addClass('hidden');
+                gridViewBtn.addClass('text-blue-600 bg-blue-50 border-blue-200').removeClass('text-gray-400 border-transparent');
+                listViewBtn.removeClass('text-blue-600 bg-blue-50 border-blue-200').addClass('text-gray-400 border-transparent');
+                localStorage.setItem('preferredView', 'grid');
+            }
+            
+            // 视图按钮点击事件
+            listViewBtn.click(activateListView);
+            gridViewBtn.click(activateGridView);
+            
+            // 增强的批量选择功能
+            const selectAllBtn = $('#select-all-btn');
+            const downloadBtn = $('#download-selected-btn');
+            const clearSelectionBtn = $('#clear-selection-btn');
+            const selectionSummary = $('#selection-summary');
+            let selectedItems = new Set();
+            
+            // 更新选中数量和相关UI的函数
+            function updateSelectionStatus() {
+                const count = selectedItems.size;
+                $('.selected-count').text(`下载选中(${count})`);
+                $('.selected-count-text').text(count);
+                
+                // 显示/隐藏选择摘要条
+                if (count > 0) {
+                    selectionSummary.removeClass('hidden');
+                } else {
+                    selectionSummary.addClass('hidden');
+                }
+                
+                // 更新下载按钮状态
+                if (count > 0) {
+                    downloadBtn.prop('disabled', false)
+                        .removeClass('text-gray-400 bg-gray-100 border-gray-200')
+                        .addClass('text-blue-600 bg-blue-50 border-blue-100');
+                } else {
+                    downloadBtn.prop('disabled', true)
+                        .removeClass('text-blue-600 bg-blue-50 border-blue-100')
+                        .addClass('text-gray-400 bg-gray-100 border-gray-200');
+                }
+                
+                // 更新全选按钮图标
+                const totalItems = $('.result-checkbox').length;
+                if (count === totalItems && totalItems > 0) {
+                    selectAllBtn.find('.select-all-icon')
+                        .removeClass('far fa-square')
+                        .addClass('fas fa-check-square');
+                } else {
+                    selectAllBtn.find('.select-all-icon')
+                        .removeClass('fas fa-check-square')
+                        .addClass('far fa-square');
+                }
+            }
+            
+            // 复选框变化事件 - 增强视觉反馈
+            $(document).on('change', '.result-checkbox', function() {
+                const id = $(this).val();
+                const customCheckbox = $(this).siblings('.checkbox-custom');
+                
+                if ($(this).is(':checked')) {
+                    selectedItems.add(id);
+                    customCheckbox.addClass('bg-blue-600 border-blue-600')
+                                 .removeClass('bg-white border-gray-300');
+                    customCheckbox.find('.checkbox-icon').addClass('scale-100')
+                                                       .removeClass('scale-0');
+                } else {
+                    selectedItems.delete(id);
+                    customCheckbox.removeClass('bg-blue-600 border-blue-600')
+                                 .addClass('bg-white border-gray-300');
+                    customCheckbox.find('.checkbox-icon').removeClass('scale-100')
+                                                       .addClass('scale-0');
+                }
+                
+                updateSelectionStatus();
+            });
+            
+            // 全选/取消全选按钮 - 改进交互
+            selectAllBtn.click(function() {
+                const checkboxes = $('.result-checkbox');
+                const icon = $(this).find('.select-all-icon');
+                
+                // 检查当前是否已全选
+                const allChecked = checkboxes.filter(':checked').length === checkboxes.length;
+                
+                if (allChecked) {
+                    // 取消全选
+                    checkboxes.prop('checked', false).trigger('change');
+                    icon.removeClass('fas fa-check-square').addClass('far fa-square');
+                    
+                    // 清除所有选定的自定义复选框样式
+                    $('.checkbox-custom').removeClass('bg-blue-600 border-blue-600')
+                                        .addClass('bg-white border-gray-300');
+                    $('.checkbox-icon').removeClass('scale-100').addClass('scale-0');
+                    
+                    selectedItems.clear();
+                } else {
+                    // 全选
+                    checkboxes.prop('checked', true).trigger('change');
+                    icon.removeClass('far fa-square').addClass('fas fa-check-square');
+                    
+                    // 应用选中样式到所有自定义复选框
+                    $('.checkbox-custom').addClass('bg-blue-600 border-blue-600')
+                                        .removeClass('bg-white border-gray-300');
+                    $('.checkbox-icon').addClass('scale-100').removeClass('scale-0');
+                    
+                    // 添加所有ID到集合
+                    checkboxes.each(function() {
+                        selectedItems.add($(this).val());
+                    });
+                }
+                
+                updateSelectionStatus();
+            });
+            
+            // 清除选择按钮
+            clearSelectionBtn.click(function() {
+                $('.result-checkbox').prop('checked', false).trigger('change');
+                selectedItems.clear();
+                
+                // 重置所有自定义复选框样式
+                $('.checkbox-custom').removeClass('bg-blue-600 border-blue-600')
+                                    .addClass('bg-white border-gray-300');
+                $('.checkbox-icon').removeClass('scale-100').addClass('scale-0');
+                
+                updateSelectionStatus();
+            });
+            
+            // 优化的下载选中项功能
+            downloadBtn.click(function() {
+                if (selectedItems.size === 0) {
+                    return;
+                }
+                
+                // 显示加载状态并禁用按钮
+                const originalHtml = $(this).html();
+                $(this).html('<div class="flex items-center"><i class="fas fa-spinner fa-spin mr-1.5"></i> 处理中...</div>');
+                $(this).prop('disabled', true);
+                
+                // 发送请求下载
+                fetch('/download_selected', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ids: Array.from(selectedItems)
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('网络请求失败');
+                })
+                .then(blob => {
+                    // 创建一个临时下载链接
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `selected_strains_${selectedItems.size}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    // 恢复按钮状态
+                    $(this).html(originalHtml);
+                    $(this).prop('disabled', false);
+                    
+                    // 显示成功提示
+                    showToast(`已成功导出 ${selectedItems.size} 条记录`, 'success');
+                })
+                .catch(error => {
+                    console.error('Error downloading selected items:', error);
+                    showToast('下载失败，请重试', 'error');
+                    
+                    // 恢复按钮状态
+                    $(this).html(originalHtml);
+                    $(this).prop('disabled', false);
+                });
+            });
+
+            // 添加通知提示功能
+            function showToast(message, type = 'info') {
+                // 创建toast元素
+                const toast = $('<div>').addClass('fixed bottom-4 right-4 z-50 py-2 px-4 rounded-lg text-white shadow-lg transform transition-all duration-300 flex items-center');
+                
+                // 根据类型设置不同背景
+                if (type === 'success') {
+                    toast.addClass('bg-green-600');
+                    toast.html(`<i class="fas fa-check-circle mr-2"></i> ${message}`);
+                } else if (type === 'error') {
+                    toast.addClass('bg-red-600');
+                    toast.html(`<i class="fas fa-exclamation-circle mr-2"></i> ${message}`);
+                } else {
+                    toast.addClass('bg-blue-600');
+                    toast.html(`<i class="fas fa-info-circle mr-2"></i> ${message}`);
+                }
+                
+                // 添加到body
+                $('body').append(toast);
+                
+                // 显示后淡出
+                setTimeout(() => {
+                    toast.css('opacity', 0);
+                    setTimeout(() => toast.remove(), 500);
+                }, 3000);
+            }
+            
+            // 搜索建议功能
+            function showSuggestions(input, suggestions) {
+                $(input).on('input', function() {
+                    let query = $(this).val();
+                    if (query.length > 1) {
+                        $.getJSON('/suggestions', { q: query }, function(data) {
+                            let suggestionsHtml = data.map(item => 
+                                `<li class="py-2 px-4 cursor-pointer border-b border-gray-100 hover:bg-blue-50 flex items-center">
+                                    <i class="fas fa-bacteria mr-2 text-blue-400"></i> ${item}
+                                </li>`
+                            ).join('');
+                            $(suggestions).html(suggestionsHtml).removeClass('hidden').show();
+                        });
+                    } else {
+                        $(suggestions).hide();
+                    }
+                });
+
+                $(suggestions).on('click', 'li', function() {
+                    let text = $(this).text().trim();
+                    $(input).val(text);
+                    $(input).closest('form').submit();
+                });
+
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest(suggestions).length && !$(e.target).closest(input).length) {
+                        $(suggestions).hide();
+                    }
+                });
+            }
+
+            showSuggestions('#search-input', '#suggestions');
+
+            // 返回顶部按钮
+            var backToTopButton = $('#back-to-top');
+            $(window).scroll(function() {
+                if ($(window).scrollTop() > 300) {
+                    backToTopButton.css('opacity', '1');
+                } else {
+                    backToTopButton.css('opacity', '0');
+                }
+            });
+            backToTopButton.click(function() {
+                $('html, body').animate({scrollTop: 0}, '300');
+                return false;
+            });
+        });
+    </script>
+    
+    <!-- 添加自定义样式 -->
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 优化复选框样式 */
+        .result-item {
+            position: relative;
+        }
+        
+        /* 自定义复选框样式 */
+        .checkbox-custom {
+            position: relative;
+        }
+
+        /* 选择框悬停效果 */
+        .result-checkbox:focus + .checkbox-custom {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        .result-item:hover .checkbox-container {
+            background-color: rgba(219, 234, 254, 0.4);
+        }
+        
+        /* 视图切换按钮优化 */
+        .view-btn {
+            transition: all 0.2s;
+        }
+        
+        /* 优化批量操作区域 */
+        #select-all-btn:hover .select-all-icon {
+            transform: scale(1.1);
+        }
+        
+        /* 提高卡片悬停效果 */
+        .result-item:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 文本截断类 */
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 640px) {
+            /* 优化移动端选择框 */
+            .checkbox-container {
+                padding: 0 10px;
+            }
+            
+            /* 确保移动设备上批量操作区域更紧凑 */
+            #selection-summary {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -81,7 +81,14 @@ def results():
     
     # 创建构建页面URL的函数
     def build_page_url(page_num):
-        return url_for('results', q=query, page=page_num, sort=sort)
+        query_params = request.args.copy()
+        query_params['page'] = page_num
+        # 使用MultiDict的to_dict(flat=False)保留所有值，然后手动格式化URL参数字符串
+        params = []
+        for key, values in query_params.lists():
+            for value in values:
+                params.append(f"{key}={value}")
+        return f"{request.path}?{'&'.join(params)}"
     
     return render_template(
         'results.html', 
@@ -523,19 +530,24 @@ def advanced_results():
     sort_order = request.args.get('sort_order', 'desc')
     
     # Get the correct model class for the sort field
-    if '.' in sort_by:
-        sort_model_name, sort_field_name = sort_by.split('.')
-        sort_model = globals()[sort_model_name]
-        sort_attr = getattr(sort_model, sort_field_name)
-    else:
-        # Default to BasicInfo model if no model specified
-        sort_attr = getattr(BasicInfo, sort_by)
-    
-    # Apply sort direction
-    if sort_order == 'desc':
-        query = query.order_by(sort_attr.desc())
-    else:
-        query = query.order_by(sort_attr.asc())
+    try:
+        if '.' in sort_by:
+            sort_model_name, sort_field_name = sort_by.split('.')
+            sort_model = globals()[sort_model_name]
+            sort_attr = getattr(sort_model, sort_field_name)
+        else:
+            # Default to BasicInfo model if no model specified
+            sort_attr = getattr(BasicInfo, sort_by)
+        
+        # Apply sort direction
+        if sort_order == 'desc':
+            query = query.order_by(sort_attr.desc())
+        else:
+            query = query.order_by(sort_attr.asc())
+    except AttributeError:
+        # 如果出现属性错误，回退到默认排序
+        logger.error(f"排序错误：无法按 {sort_by} 排序，使用默认排序")
+        query = query.order_by(BasicInfo.preservation_date.desc())
     
     # Get total count for pagination
     total_results = query.count()
@@ -551,13 +563,23 @@ def advanced_results():
     def build_page_url(page_num):
         query_params = request.args.copy()
         query_params['page'] = page_num
-        return f"{request.path}?{query_params.to_dict()}"
+        # 使用MultiDict的to_dict(flat=False)保留所有值，然后手动格式化URL参数字符串
+        params = []
+        for key, values in query_params.lists():
+            for value in values:
+                params.append(f"{key}={value}")
+        return f"{request.path}?{'&'.join(params)}"
     
     def build_sort_url(sort_field, sort_dir):
         query_params = request.args.copy()
         query_params['sort_by'] = sort_field
         query_params['sort_order'] = sort_dir
-        return f"{request.path}?{query_params.to_dict()}"
+        # 使用MultiDict的lists()方法保留所有值，然后手动格式化URL参数字符串
+        params = []
+        for key, values in query_params.lists():
+            for value in values:
+                params.append(f"{key}={value}")
+        return f"{request.path}?{'&'.join(params)}"
     
     return render_template(
         'results.html',

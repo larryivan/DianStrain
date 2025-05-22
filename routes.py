@@ -665,6 +665,201 @@ def build_search_description(search_params, freezer_location_params=None):
     
     return " 且 ".join(parts)
 
+@app.route('/get_all_ids', methods=['GET'])
+def get_all_ids():
+    """获取符合当前搜索/筛选条件的所有IDs"""
+    try:
+        # 解析搜索参数，与advanced_results函数类似，但不进行分页
+        search_params = {}
+        logic_ops = {}
+        freezer_location_params = {}
+        query_term = request.args.get('q', '')
+        
+        # 处理普通搜索和高级搜索
+        if request.args.get('is_advanced', '0') == '1':
+            # 高级搜索参数提取
+            for key, value in request.args.items():
+                if key.startswith('logic_'):
+                    field_name = key[6:]
+                    logic_ops[field_name] = value
+                elif key.startswith('BasicInfo.preservation_notes_'):
+                    component = key.split('_')[-1]
+                    if value:
+                        freezer_location_params[component] = value
+                elif '_min' in key or '_max' in key:
+                    base_key = key.rsplit('_', 1)[0]
+                    range_type = key.rsplit('_', 1)[1]
+                    
+                    if base_key not in search_params:
+                        search_params[base_key] = {}
+                    
+                    if value:
+                        search_params[base_key][range_type] = value
+                elif '.' in key and value and key not in ['sort_by', 'sort_order']:
+                    search_params[key] = value
+            
+            # 构建查询
+            query = db.session.query(BasicInfo.basic_info_id).distinct()
+            
+            # 连接必要的表
+            table_joins = set()
+            for param_key in search_params:
+                if param_key.startswith('EcologyData.'):
+                    if 'EcologyData' not in table_joins:
+                        query = query.join(EcologyData)
+                        table_joins.add('EcologyData')
+                elif param_key.startswith('MorphologyData.'):
+                    if 'MorphologyData' not in table_joins:
+                        query = query.join(MorphologyData)
+                        table_joins.add('MorphologyData')
+                elif param_key.startswith('GenomicsData.'):
+                    if 'GenomicsData' not in table_joins:
+                        query = query.join(GenomicsData)
+                        table_joins.add('GenomicsData')
+                elif param_key.startswith('PhysiologyData.'):
+                    if 'PhysiologyData' not in table_joins:
+                        query = query.join(PhysiologyData)
+                        table_joins.add('PhysiologyData')
+            
+            # 应用过滤器
+            filters = []
+            prev_key = None
+            
+            for param_key, param_value in search_params.items():
+                if not param_value or param_key == 'sort_by' or param_key == 'sort_order':
+                    continue
+                
+                if '.' in param_key:
+                    model_name, field_name = param_key.split('.')
+                    model_class = globals()[model_name]
+                    
+                    if isinstance(param_value, dict):
+                        if 'min' in param_value:
+                            filter_condition = getattr(model_class, field_name) >= param_value['min']
+                            if prev_key and param_key in logic_ops:
+                                if logic_ops[param_key] == 'OR':
+                                    filters[-1] = or_(filters[-1], filter_condition)
+                                else:
+                                    filters[-1] = and_(filters[-1], filter_condition)
+                            else:
+                                filters.append(filter_condition)
+                            prev_key = param_key
+                        
+                        if 'max' in param_value:
+                            filter_condition = getattr(model_class, field_name) <= param_value['max']
+                            if prev_key and param_key in logic_ops:
+                                if logic_ops[param_key] == 'OR':
+                                    filters[-1] = or_(filters[-1], filter_condition)
+                                else:
+                                    filters[-1] = and_(filters[-1], filter_condition)
+                            else:
+                                filters.append(filter_condition)
+                            prev_key = param_key
+                    else:
+                        filter_condition = getattr(model_class, field_name).ilike(f'%{param_value}%')
+                        if prev_key and param_key in logic_ops:
+                            if logic_ops[param_key] == 'OR':
+                                filters[-1] = or_(filters[-1], filter_condition)
+                            else:
+                                filters[-1] = and_(filters[-1], filter_condition)
+                        else:
+                            filters.append(filter_condition)
+                        prev_key = param_key
+            
+            # 处理冰箱位置搜索
+            if freezer_location_params:
+                freezer_components = []
+                
+                if 'freezer' in freezer_location_params:
+                    pattern = f"{freezer_location_params['freezer']}-"
+                    freezer_components.append(BasicInfo.preservation_notes.like(f'{pattern}%'))
+                
+                if 'layer' in freezer_location_params:
+                    if 'freezer' in freezer_location_params:
+                        pattern = f"{freezer_location_params['freezer']}-{freezer_location_params['layer']}-"
+                    else:
+                        pattern = f"%-{freezer_location_params['layer']}-"
+                    freezer_components.append(BasicInfo.preservation_notes.like(f'{pattern}%'))
+                
+                if 'shelf' in freezer_location_params:
+                    if 'layer' in freezer_location_params:
+                        if 'freezer' in freezer_location_params:
+                            pattern = f"{freezer_location_params['freezer']}-{freezer_location_params['layer']}-{freezer_location_params['shelf']}-"
+                        else:
+                            pattern = f"%-{freezer_location_params['layer']}-{freezer_location_params['shelf']}-"
+                    else:
+                        pattern = f"%-%-{freezer_location_params['shelf']}-"
+                    freezer_components.append(BasicInfo.preservation_notes.like(f'{pattern}%'))
+                
+                if 'box' in freezer_location_params:
+                    box = freezer_location_params['box'].zfill(2)
+                    if 'shelf' in freezer_location_params:
+                        if 'layer' in freezer_location_params:
+                            if 'freezer' in freezer_location_params:
+                                pattern = f"{freezer_location_params['freezer']}-{freezer_location_params['layer']}-{freezer_location_params['shelf']}-{box}-"
+                            else:
+                                pattern = f"%-{freezer_location_params['layer']}-{freezer_location_params['shelf']}-{box}-"
+                        else:
+                            pattern = f"%-%-{freezer_location_params['shelf']}-{box}-"
+                    else:
+                        pattern = f"%-%-%-{box}-"
+                    freezer_components.append(BasicInfo.preservation_notes.like(f'{pattern}%'))
+                
+                if 'hole' in freezer_location_params:
+                    hole = freezer_location_params['hole'].zfill(2)
+                    if 'box' in freezer_location_params:
+                        box = freezer_location_params['box'].zfill(2)
+                        if 'shelf' in freezer_location_params:
+                            if 'layer' in freezer_location_params:
+                                if 'freezer' in freezer_location_params:
+                                    pattern = f"{freezer_location_params['freezer']}-{freezer_location_params['layer']}-{freezer_location_params['shelf']}-{box}-{hole}"
+                                else:
+                                    pattern = f"%-{freezer_location_params['layer']}-{freezer_location_params['shelf']}-{box}-{hole}"
+                            else:
+                                pattern = f"%-%-{freezer_location_params['shelf']}-{box}-{hole}"
+                        else:
+                            pattern = f"%-%-%-{box}-{hole}"
+                    else:
+                        pattern = f"%-%-%-%-{hole}"
+                    freezer_components.append(BasicInfo.preservation_notes.like(f'{pattern}'))
+                
+                if freezer_components:
+                    freezer_filter = and_(*freezer_components)
+                    if filters:
+                        if logic_ops.get('BasicInfo.preservation_notes') == 'OR':
+                            filters[-1] = or_(filters[-1], freezer_filter)
+                        else:
+                            filters[-1] = and_(filters[-1], freezer_filter)
+                    else:
+                        filters.append(freezer_filter)
+        else:
+            # 普通搜索
+            query = db.session.query(BasicInfo.basic_info_id).distinct()
+            if query_term:
+                filters = [or_(
+                    BasicInfo.chinese_name.ilike(f'%{query_term}%'),
+                    BasicInfo.classification_status.ilike(f'%{query_term}%'),
+                    BasicInfo.basic_info_id.ilike(f'%{query_term}%'),
+                    BasicInfo.genus.ilike(f'%{query_term}%'),
+                    BasicInfo.species.ilike(f'%{query_term}%'),
+                    func.concat(BasicInfo.genus, ' ', BasicInfo.species).ilike(f'%{query_term}%')
+                )]
+            else:
+                filters = []
+        
+        # 应用过滤器
+        for f in filters:
+            query = query.filter(f)
+        
+        # 获取所有ID
+        all_ids = [row[0] for row in query.all()]
+        
+        return jsonify({"ids": all_ids, "count": len(all_ids)})
+    
+    except Exception as e:
+        logger.error(f"获取所有ID时出错: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/download_selected', methods=['POST'])
 def download_selected():
     """Download selected items as CSV"""

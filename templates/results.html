@@ -538,23 +538,75 @@
                     $('.checkbox-icon').removeClass('scale-100').addClass('scale-0');
                     
                     selectedItems.clear();
+                    updateSelectionStatus();
                 } else {
-                    // 全选
-                    checkboxes.prop('checked', true).trigger('change');
-                    icon.removeClass('far fa-square').addClass('fas fa-check-square');
+                    // 获取当前查询参数
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const queryParams = { 
+                        q: urlParams.get('q') || '',
+                        is_advanced: window.location.pathname.includes('advanced_results') ? '1' : '0'
+                    };
                     
-                    // 应用选中样式到所有自定义复选框
-                    $('.checkbox-custom').addClass('bg-blue-600 border-blue-600')
-                                        .removeClass('bg-white border-gray-300');
-                    $('.checkbox-icon').addClass('scale-100').removeClass('scale-0');
+                    // 如果是高级搜索，额外收集所有高级搜索参数
+                    if (queryParams.is_advanced === '1') {
+                        urlParams.forEach((value, key) => {
+                            if (key !== 'page') {
+                                queryParams[key] = value;
+                            }
+                        });
+                    }
                     
-                    // 添加所有ID到集合
-                    checkboxes.each(function() {
-                        selectedItems.add($(this).val());
+                    // 显示加载状态
+                    const originalText = $(this).text();
+                    $(this).html('<i class="fas fa-spinner fa-spin fa-square"></i> 加载中...');
+                    $(this).prop('disabled', true);
+                    
+                    // 发起API请求获取所有符合当前搜索条件的ID
+                    $.ajax({
+                        url: '/get_all_ids',
+                        type: 'GET',
+                        data: queryParams,
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.ids && data.ids.length > 0) {
+                                // 先清空已选项
+                                selectedItems.clear();
+                                
+                                // 添加所有ID到选中集合
+                                data.ids.forEach(id => selectedItems.add(id));
+                                
+                                // 选中当前页面上的所有复选框
+                                checkboxes.prop('checked', true);
+                                
+                                // 应用选中样式到所有自定义复选框
+                                $('.checkbox-custom').addClass('bg-blue-600 border-blue-600')
+                                                    .removeClass('bg-white border-gray-300');
+                                $('.checkbox-icon').addClass('scale-100').removeClass('scale-0');
+                                
+                                // 更改图标状态
+                                icon.removeClass('far fa-square').addClass('fas fa-check-square');
+                                
+                                // 显示提示
+                                showToast(`已全选 ${data.count} 条记录`, 'success');
+                            } else {
+                                showToast('未找到符合条件的记录', 'error');
+                            }
+                            
+                            // 恢复按钮状态
+                            selectAllBtn.html(originalText);
+                            selectAllBtn.prop('disabled', false);
+                            updateSelectionStatus();
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error fetching all IDs:', error);
+                            showToast('获取所有ID失败，请重试', 'error');
+                            
+                            // 恢复按钮状态
+                            selectAllBtn.html(originalText);
+                            selectAllBtn.prop('disabled', false);
+                        }
                     });
                 }
-                
-                updateSelectionStatus();
             });
             
             // 清除选择按钮

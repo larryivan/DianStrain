@@ -234,7 +234,7 @@ class ModernGUI(QWidget):
         self.define_fonts_and_styles()
 
         # 添加标题
-        header_label = QLabel('欢迎使用菌种数据库控制中心')
+        header_label = QLabel('中烟技术中心菌种数据库')
         header_label.setFont(self.font_header)
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_label.setStyleSheet("color: #2d3436; margin-top: 10px;")
@@ -270,13 +270,13 @@ class ModernGUI(QWidget):
         function_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.search_button = self.create_button(
-            '微生物搜索',
+            '数据查询',
             resource_path(os.path.join(ICON_DIR, 'search_icon.png')),
             self.search_button_style,
             self.microbe_search
         )
         self.admin_button = self.create_button(
-            '管理系统',
+            '数据管理',
             resource_path(os.path.join(ICON_DIR, 'admin_icon.png')),
             self.admin_button_style,
             self.admin_system

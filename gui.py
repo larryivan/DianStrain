@@ -317,18 +317,6 @@ class ModernGUI(QWidget):
         ip_layout.addWidget(local_ip_label)
         ip_layout.addWidget(lan_ip_label)
         layout.addWidget(ip_frame)
-
-        # 使用说明链接
-        usage_link = self.create_label(
-            '<a href="http://127.0.0.1:5001/instruction">使用说明</a>',
-            self.font_usage_link,
-            self.usage_link_style,
-            cursor=True
-        )
-        usage_link.setOpenExternalLinks(True)
-        usage_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(usage_link)
-
         # 添加占位符以调整布局
         spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)

@@ -35,11 +35,8 @@
                 <button type="button" onclick="switchPreset('morphology')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent mr-2">
                     <i class="fas fa-microscope mr-1"></i> 形态学
                 </button>
-                <button type="button" onclick="switchPreset('physiology')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent mr-2">
+                <button type="button" onclick="switchPreset('physiology')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
                     <i class="fas fa-flask mr-1"></i> 生理学
-                </button>
-                <button type="button" onclick="switchPreset('genomics')" class="tab-btn py-3 px-4 font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    <i class="fas fa-dna mr-1"></i> 基因组学
                 </button>
             </div>
         </div>
@@ -136,7 +133,6 @@
         const fieldsByCategory = {
             morphology: ['MorphologyData.description', 'MorphologyData.colony_color', 'MorphologyData.spore_staining_reaction', 'MorphologyData.colony_shape', 'MorphologyData.colony_texture'],
             physiology: ['PhysiologyData.nicotine_degradation', 'PhysiologyData.cellulase', 'PhysiologyData.acidic_protease', 'PhysiologyData.lignin_degrading_enzymes', 'EcologyData.temperature', 'EcologyData.oxygen_requirement'],
-            genomics: ['GenomicsData.genome_size', 'GenomicsData.gc_content', 'GenomicsData.sequencing_method', 'BasicInfo.is_type_strain'],
             basic: ['BasicInfo.genus', 'BasicInfo.species', 'BasicInfo.chinese_name', 'BasicInfo.classification_status', 'BasicInfo.preservation_date', 'BasicInfo.preservation_notes', 'EcologyData.habitat', 'EcologyData.location_name']
         };
         

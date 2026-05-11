@@ -24,6 +24,27 @@
 - 💻 Desktop GUI control center (PyQt6)
 - 🔐 Admin authentication & CRUD operations
 
+## Screenshots
+
+<div align="center">
+<img src="docs/screenshots/gui-desktop.png" alt="Desktop GUI Control Center" width="70%">
+<p><em>Desktop GUI Control Center</em></p>
+</div>
+
+<br>
+
+<div align="center">
+<img src="docs/screenshots/search-results.png" alt="Search Results" width="70%">
+<p><em>Search Results with Grid/List View</em></p>
+</div>
+
+<br>
+
+<div align="center">
+<img src="docs/screenshots/admin-panel.png" alt="Admin Panel" width="70%">
+<p><em>Admin Management Panel</em></p>
+</div>
+
 ## Quick Start
 
 ```bash

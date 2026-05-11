@@ -1,19 +1,48 @@
-# 部署说明
-此文档提供中烟菌种数据库的部署指导。
+<div align="center">
 
-## 部署环境
-### Python环境的安装
-首先部署python环境
-下载下面网页的Python环境：
-https://www.python.org/downloads/release/python-31210/
+<img src="static/logo.png" alt="DianStrain Logo" width="180">
 
-特别要注意勾上Add Python 3.x to PATH，然后点“Install Now”即可完成安装。
-### 依赖库的安装
-打开powershell或者cmd，切换到程序目录下，运行：
-```cmd
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
+# DianStrain
+
+**Microbial Strain Database for Yunnan China Tobacco R&D Center**
+
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white)
+![PyQt6](https://img.shields.io/badge/PyQt6-GUI-41CD52?logo=qt&logoColor=white)
+
+</div>
+
+---
+
+## Features
+
+- 🔍 Multi-dimension advanced search with AND/OR logic
+- 📊 Batch CSV import & export
+- 🧬 Genome sequence file management (FASTA, GenBank, GFF3)
+- 🗂️ Freezer location hierarchy tracking
+- 💻 Desktop GUI control center (PyQt6)
+- 🔐 Admin authentication & CRUD operations
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python app.py
+
+# Or use the Windows launcher
+run.bat
 ```
 
-## 运行软件
+Access at `http://127.0.0.1:5001`
 
-之后在桌面运行 `run.bat` 即可打开gui环境。
+## Tech Stack
+
+Flask · SQLAlchemy · SQLite · PyQt6 · Tailwind CSS · jQuery · Chart.js
+
+## License
+
+Internal Use Only
